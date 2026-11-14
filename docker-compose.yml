@@ -1,0 +1,61 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: fmc-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: testdb
+    ports:
+      - "5434:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: fmc-redis
+    restart: unless-stopped
+    ports:
+      - "6381:6379"
+    volumes:
+      - redisdata:/data
+
+  backend:
+    build:
+      context: ./developement/danielblair924_backend
+      dockerfile: Dockerfile
+    container_name: fmc-backend
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:root@postgres:5432/testdb?schema=public
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=fmc-jwt-super-secret-key-production-ready
+      - PORT=4000
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - backend-uploads:/app/uploads
+
+  frontend:
+    build:
+      context: ./developement/danielblair924_dashboard_front-end
+      dockerfile: Dockerfile
+    container_name: fmc-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_ENDPOINT=http://localhost:4000
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  redisdata:
+  backend-uploads:

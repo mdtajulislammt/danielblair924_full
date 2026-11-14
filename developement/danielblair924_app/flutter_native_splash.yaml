@@ -1,0 +1,17 @@
+# dart run flutter_native_splash:create
+
+flutter_native_splash:
+  android: true
+  ios: true
+  web: false
+
+  color: "#1A1A2E"
+  image: assets/images/native_splash.png
+  ios_content_mode: scaleAspectFill # visit https://developer.apple.com/documentation/uikit/uiview/contentmode
+
+  # For Android 12+ compatibility when using full-screen images:
+  android_12:
+    image: assets/images/native_splash.png
+    color: "#1A1A2E"
+  fullscreen: true
+

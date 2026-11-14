@@ -1,0 +1,35 @@
+{
+  "navigation": [
+    { "id": "admin-account", "label": "Admin Account" },
+    { "id": "notifications", "label": "Notifications" },
+    { "id": "security", "label": "Security" }
+  ],
+  "account": {
+    "name": "Admin User",
+    "email": "admin@fmc.com"
+  },
+  "notifications": {
+    "newSubmissionAlert": true,
+    "newRegistrationAlert": true,
+    "weeklySummaryEmail": false,
+    "eventPublishedConfirmation": true,
+    "badgeEarnedNotifications": false
+  },
+  "security": {
+    "enable2FA": false,
+    "sessions": [
+      {
+        "id": "1",
+        "device": "Chrome on macOS",
+        "location": "Dhaka, BD",
+        "isCurrent": true
+      },
+      {
+        "id": "2",
+        "device": "Safari on iPhone",
+        "location": "Dhaka, BD",
+        "isCurrent": false
+      }
+    ]
+  }
+}
