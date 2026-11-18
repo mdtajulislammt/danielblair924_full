@@ -5,19 +5,16 @@ export interface DashboardStats {
   pendingSubmissions: number;
   upcomingEvents: number;
   activeChallenges: number;
+  upcomingChallenges?: number;
 }
 
 export interface RecentActivityItem {
   id: string;
-  type: string;
-  description: string;
-  createdAt: string;
-  user?: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    avatarUrl?: string;
-  };
+  member: string;
+  activity: string;
+  distance: string;
+  date: string;
+  status: string;
 }
 
 export const DashboardService = {
@@ -28,9 +25,25 @@ export const DashboardService = {
     try {
       const response = await Fetch.get("/admin/dashboard/stats");
       if (response && response.data) {
-        return response.data;
+        return {
+          activeMembers: response.data.activeMembers ?? 0,
+          pendingSubmissions: response.data.pendingSubmissions ?? 0,
+          upcomingEvents: response.data.upcomingEvents ?? 0,
+          activeChallenges:
+            response.data.activeChallenges ??
+            response.data.upcomingChallenges ??
+            0,
+        };
       }
-      return response;
+      return {
+        activeMembers: response?.activeMembers ?? 0,
+        pendingSubmissions: response?.pendingSubmissions ?? 0,
+        upcomingEvents: response?.upcomingEvents ?? 0,
+        activeChallenges:
+          response?.activeChallenges ??
+          response?.upcomingChallenges ??
+          0,
+      };
     } catch (error) {
       console.error("Failed to load dashboard stats:", error);
       return {

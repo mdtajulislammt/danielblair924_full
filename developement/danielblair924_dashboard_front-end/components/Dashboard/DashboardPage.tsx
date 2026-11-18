@@ -9,10 +9,10 @@ import { useAuth } from "@/hooks/useAuth";
 function DashboardPage() {
   const { isMember } = useAuth();
   const [stats, setStats] = useState<DashboardStats>({
-    activeMembers: 1284,
-    pendingSubmissions: 24,
-    upcomingEvents: 7,
-    activeChallenges: 12,
+    activeMembers: 0,
+    pendingSubmissions: 0,
+    upcomingEvents: 0,
+    activeChallenges: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -23,10 +23,10 @@ function DashboardPage() {
         const liveStats = await DashboardService.getStats();
         if (isMounted && liveStats) {
           setStats({
-            activeMembers: liveStats.activeMembers ?? 1284,
-            pendingSubmissions: liveStats.pendingSubmissions ?? 24,
-            upcomingEvents: liveStats.upcomingEvents ?? 7,
-            activeChallenges: liveStats.activeChallenges ?? 12,
+            activeMembers: liveStats.activeMembers ?? 0,
+            pendingSubmissions: liveStats.pendingSubmissions ?? 0,
+            upcomingEvents: liveStats.upcomingEvents ?? 0,
+            activeChallenges: liveStats.activeChallenges ?? 0,
           });
         }
       } catch (err) {
