@@ -10,14 +10,21 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { MediaService } from './media.service.js';
 import type { UploadedFile } from './media.service.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../auth/guards/roles.guard.js';
+import { Roles } from '../auth/decorators/roles.decorator.js';
 
 @Controller()
 export class MediaController {
   constructor(private readonly mediaService: MediaService) {}
 
   @Post('media/upload')
-  @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FileInterceptor('file'))
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERADMIN', 'MEMBER')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+    }),
+  )
   async uploadMedia(
     @UploadedFileDecorator() file: UploadedFile,
   ) {
@@ -32,8 +39,13 @@ export class MediaController {
   }
 
   @Post('upload')
-  @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FileInterceptor('file'))
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERADMIN', 'MEMBER')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 5 * 1024 * 1024 },
+    }),
+  )
   async uploadDirect(
     @UploadedFileDecorator() file: UploadedFile,
   ) {
@@ -48,8 +60,13 @@ export class MediaController {
   }
 
   @Post('admin/media/upload')
-  @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FileInterceptor('file'))
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERADMIN')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 5 * 1024 * 1024 },
+    }),
+  )
   async uploadAdminMedia(
     @UploadedFileDecorator() file: UploadedFile,
   ) {

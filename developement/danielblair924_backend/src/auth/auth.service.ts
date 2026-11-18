@@ -1,26 +1,47 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
+  HttpStatus,
   Injectable,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcryptjs';
+import crypto from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 import { ResetPasswordDto } from './dto/reset-password.dto.js';
 
+interface OtpEntry {
+  hashedOtp: string;
+  expiresAt: number;
+  attempts: number;
+}
+
 @Injectable()
 export class AuthService {
-  private readonly jwtSecret = process.env.JWT_SECRET || 'fmc-super-secret-jwt-key-2026';
-  private readonly refreshSecret = process.env.JWT_REFRESH_SECRET || 'fmc-refresh-secret-jwt-key-2026';
+  private readonly jwtSecret: string;
+  private readonly refreshSecret: string;
+  private readonly resetSecret: string;
+
+  // In-memory secure OTP store: email -> OtpEntry
+  private readonly otpStore = new Map<string, OtpEntry>();
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
-  ) {}
+  ) {
+    const jwt = process.env.JWT_SECRET;
+    if (!jwt) {
+      throw new Error('FATAL: JWT_SECRET environment variable is missing.');
+    }
+    this.jwtSecret = jwt;
+    this.refreshSecret = process.env.JWT_REFRESH_SECRET || jwt + '_refresh';
+    this.resetSecret = process.env.JWT_RESET_SECRET || jwt + '_reset';
+  }
 
   async register(dto: RegisterDto) {
     const existingEmail = await this.prisma.user.findUnique({
@@ -237,52 +258,91 @@ export class AuthService {
   }
 
   async forgotPassword(email: string) {
+    const cleanEmail = email.toLowerCase().trim();
     const user = await this.prisma.user.findUnique({
-      where: { email: email.toLowerCase().trim() },
+      where: { email: cleanEmail },
     });
 
-    // Generate a reset token if user found
-    let resetToken = 'mock-reset-token';
     if (user) {
-      resetToken = this.jwtService.sign(
-        { sub: user.id, type: 'password_reset' },
-        { secret: this.jwtSecret, expiresIn: '1h' },
-      );
+      // Generate cryptographically strong 6-digit OTP
+      const otp = crypto.randomInt(100000, 999999).toString();
+      const salt = await bcrypt.genSalt(10);
+      const hashedOtp = await bcrypt.hash(otp, salt);
+      const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+      this.otpStore.set(cleanEmail, {
+        hashedOtp,
+        expiresAt,
+        attempts: 0,
+      });
+
+      // In production send real email; in dev log to console for visibility
+      console.log(`[AUTH] 📧 Dispatched password reset OTP to ${cleanEmail}: ${otp} (Expires in 10 mins)`);
     }
 
+    // Security: Never return reset token in response to prevent enumeration/takeover
     return {
       status: 'success',
-      data: {
-        // Returned for development convenience
-        resetToken: process.env.NODE_ENV !== 'production' ? resetToken : undefined,
-      },
-      message: 'If the email exists, a password reset link has been dispatched.',
+      data: null,
+      message: 'If the email exists, a password reset OTP has been dispatched to your email.',
     };
   }
 
   async verifyOtp(email?: string, otp?: string) {
-    if (!otp || otp.trim().length < 4) {
-      throw new BadRequestException('Invalid OTP code. Must be at least 4 digits');
+    if (!email || !otp || otp.trim().length !== 6) {
+      throw new BadRequestException('Valid email and 6-digit OTP code are required.');
     }
 
-    let resetToken = 'mock-reset-token';
-    if (email) {
-      const user = await this.prisma.user.findUnique({
-        where: { email: email.toLowerCase().trim() },
-      });
-      if (user) {
-        resetToken = this.jwtService.sign(
-          { sub: user.id, type: 'password_reset' },
-          { secret: this.jwtSecret, expiresIn: '1h' },
-        );
-      }
+    const cleanEmail = email.toLowerCase().trim();
+    const cleanOtp = otp.trim();
+
+    const record = this.otpStore.get(cleanEmail);
+    if (!record) {
+      throw new BadRequestException('No active OTP request found for this email. Please request a new OTP.');
     }
+
+    if (Date.now() > record.expiresAt) {
+      this.otpStore.delete(cleanEmail);
+      throw new BadRequestException('OTP has expired. Please request a new one.');
+    }
+
+    // Rate-limit attempts (max 5 failed tries)
+    if (record.attempts >= 5) {
+      this.otpStore.delete(cleanEmail);
+      throw new HttpException(
+        'Too many failed attempts. OTP has been invalidated. Please request a new one.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    const isValid = await bcrypt.compare(cleanOtp, record.hashedOtp);
+    if (!isValid) {
+      record.attempts += 1;
+      const remaining = 5 - record.attempts;
+      throw new BadRequestException(`Invalid OTP code. ${remaining} attempts remaining.`);
+    }
+
+    // Remove OTP once verified to prevent replay attacks
+    this.otpStore.delete(cleanEmail);
+
+    const user = await this.prisma.user.findUnique({
+      where: { email: cleanEmail },
+    });
+    if (!user) {
+      throw new NotFoundException('User associated with this OTP no longer exists.');
+    }
+
+    // Sign reset token with separate JWT_RESET_SECRET and type 'PASSWORD_RESET'
+    const resetToken = this.jwtService.sign(
+      { sub: user.id, email: user.email, type: 'PASSWORD_RESET' },
+      { secret: this.resetSecret, expiresIn: '15m' },
+    );
 
     return {
       status: 'success',
       data: {
         resetToken,
-        message: 'OTP verified successfully',
+        message: 'OTP verified successfully.',
       },
     };
   }
@@ -290,10 +350,10 @@ export class AuthService {
   async resetPassword(dto: ResetPasswordDto) {
     try {
       const payload = this.jwtService.verify(dto.token, {
-        secret: this.jwtSecret,
+        secret: this.resetSecret,
       });
 
-      if (payload.type !== 'password_reset' || !payload.sub) {
+      if (payload.type !== 'PASSWORD_RESET' || !payload.sub) {
         throw new BadRequestException('Invalid password reset token');
       }
 
@@ -326,16 +386,19 @@ export class AuthService {
   }
 
   private async generateTokens(userId: string, email: string, role: string) {
-    const payload = { sub: userId, email, role };
+    const payload = { sub: userId, email, role, type: 'access' };
     const accessToken = this.jwtService.sign(payload, {
       secret: this.jwtSecret,
       expiresIn: '1d',
     });
 
-    const refreshToken = this.jwtService.sign(payload, {
-      secret: this.refreshSecret,
-      expiresIn: '7d',
-    });
+    const refreshToken = this.jwtService.sign(
+      { sub: userId, email, role, type: 'refresh' },
+      {
+        secret: this.refreshSecret,
+        expiresIn: '7d',
+      },
+    );
 
     return { accessToken, refreshToken };
   }

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -344,22 +345,48 @@ export class EventsService {
       throw new NotFoundException(`Event with ID '${eventId}' not found`);
     }
 
-    const updated = await this.prisma.event.update({
-      where: { id: eventId },
-      data: {
-        registeredCount: {
-          increment: 1,
+    // Check if user already joined this event to prevent duplicate entries
+    const existingEntry = await this.prisma.eventParticipant.findUnique({
+      where: {
+        eventId_userId: {
+          eventId,
+          userId,
         },
       },
+    });
+
+    if (existingEntry) {
+      throw new ConflictException(`You have already joined '${event.title}'`);
+    }
+
+    // Atomic transaction: create participant record and increment registeredCount
+    const { updatedEvent } = await this.prisma.$transaction(async (tx) => {
+      await tx.eventParticipant.create({
+        data: {
+          eventId,
+          userId,
+        },
+      });
+
+      const updated = await tx.event.update({
+        where: { id: eventId },
+        data: {
+          registeredCount: {
+            increment: 1,
+          },
+        },
+      });
+
+      return { updatedEvent: updated };
     });
 
     return {
       status: 'success' as const,
       message: `Successfully registered for event '${event.title}'`,
       data: {
-        eventId: updated.id,
-        title: updated.title,
-        registeredCount: updated.registeredCount,
+        eventId: updatedEvent.id,
+        title: updatedEvent.title,
+        registeredCount: updatedEvent.registeredCount,
       },
     };
   }
@@ -373,13 +400,37 @@ export class EventsService {
       throw new NotFoundException(`Event with ID '${eventId}' not found`);
     }
 
+    const now = new Date();
+
+    if (userId) {
+      // Upsert participant record with real NFC check-in timestamp
+      await this.prisma.eventParticipant.upsert({
+        where: {
+          eventId_userId: {
+            eventId,
+            userId,
+          },
+        },
+        update: {
+          checkedIn: true,
+          checkedInAt: now,
+        },
+        create: {
+          eventId,
+          userId,
+          checkedIn: true,
+          checkedInAt: now,
+        },
+      });
+    }
+
     return {
       status: 'success' as const,
-      message: `Checked in to '${event.title}'`,
+      message: `Real-time NFC check-in confirmed for '${event.title}'`,
       data: {
         eventId: event.id,
         eventTitle: event.title,
-        checkedInAt: new Date().toISOString(),
+        checkedInAt: now.toISOString(),
         userId,
       },
     };
@@ -391,17 +442,11 @@ export class EventsService {
       orderBy: { eventDate: 'asc' },
     });
 
-    const title = event?.title || 'Mountain Trail Challenge 2025';
-    return {
-      status: 'success' as const,
-      message: `Checked in to '${title}'`,
-      data: {
-        eventId: event?.id || 'event-nfc-checkin',
-        eventTitle: title,
-        checkedInAt: new Date().toISOString(),
-        userId,
-      },
-    };
+    if (!event) {
+      throw new NotFoundException('No active published event found for check-in');
+    }
+
+    return this.checkIn(event.id, userId);
   }
 
   async getEventParticipants(eventId: string, page = 1, limit = 10) {

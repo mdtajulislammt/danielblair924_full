@@ -4,6 +4,7 @@ import { Upload, Loader2 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "react-toastify";
 import { EventService } from "@/service/event/event.service";
 
 export interface EventDetailsFormValues {
@@ -106,7 +107,9 @@ export default function EventDetailsForm() {
           setCoverImageUrl(uploadRes.url);
         }
       } catch (err) {
-        console.warn("Image upload failed, falling back to local file name", err);
+        console.error("Image upload failed:", err);
+        setCoverImageUrl("");
+        toast.error("Failed to upload image. Please try again with a valid JPG/PNG/WEBP image under 5MB.");
       } finally {
         setIsUploadingImage(false);
       }
@@ -114,6 +117,10 @@ export default function EventDetailsForm() {
   };
 
   const onFormSubmit = (data: EventDetailsFormValues) => {
+    // Avoid saving blob: preview URLs if upload failed
+    const safeCoverImageUrl =
+      coverImageUrl && !coverImageUrl.startsWith("blob:") ? coverImageUrl : undefined;
+
     const payloadToSave = {
       eventId: isEditing ? eventId : undefined,
       eventName: data.eventName,
@@ -121,7 +128,7 @@ export default function EventDetailsForm() {
       description: data.description,
       eventDate: data.eventDate,
       distanceType: data.distanceType,
-      coverImageUrl: coverImageUrl || undefined,
+      coverImageUrl: safeCoverImageUrl,
       isChallenge: false,
     };
     localStorage.setItem("pending_event_data", JSON.stringify(payloadToSave));

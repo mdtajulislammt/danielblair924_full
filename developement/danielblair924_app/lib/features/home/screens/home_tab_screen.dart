@@ -8,6 +8,7 @@ import '../../../core/theme/theme.dart';
 import '../../../core/widgets/widgets.dart';
 import '../../../gen/assets.gen.dart';
 import '../../../shared/widgets/widgets.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../../challenge/challenge.dart';
 import '../home.dart';
 
@@ -21,25 +22,30 @@ class HomeTabScreen extends ConsumerStatefulWidget {
 class _HomeTabScreenState extends ConsumerState<HomeTabScreen> {
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(currentUserProvider);
     final challengeState = ref.watch(challengeProvider);
     final currentMilestone = challengeState.currentMilestone;
     final nextMilestone = challengeState.nextMilestone;
     final activeChallenge = challengeState.activeChallenge;
 
+    final displayName = user?.fname?.trim().isNotEmpty == true
+        ? user!.fname!
+        : (user?.username ?? 'Runner');
+
     return Scaffold(
       appBar: AppBar(
-        leading: const Padding(
-          padding: EdgeInsets.all(4),
+        leading: Padding(
+          padding: const EdgeInsets.all(4),
           child: Avatar(
-            imageUrl: 'https://i.pravatar.cc/150?img=5',
-            name: 'Jane',
+            imageUrl: user?.avatarUrl,
+            name: displayName,
           ),
         ),
 
         title: Row(
           spacing: 8,
           children: [
-            const Text('Hey, Jane'),
+            Text('Hey, $displayName'),
             Assets.icons.hiSign.image(width: 24, height: 24),
           ],
         ),

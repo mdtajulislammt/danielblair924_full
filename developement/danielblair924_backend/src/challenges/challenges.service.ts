@@ -91,9 +91,28 @@ const STATIC_DESTINATIONS = [
   },
 ];
 
+let customDestinations = [...STATIC_DESTINATIONS];
+
 @Injectable()
 export class ChallengesService {
   constructor(private readonly prisma: PrismaService) {}
+
+  public getDestinationsList() {
+    return customDestinations;
+  }
+
+  public updateDestinationsList(newDestinations: any[]) {
+    customDestinations = newDestinations.map((d, index) => ({
+      id: d.id || index + 1,
+      destination: d.destination || `Milestone ${index + 1}`,
+      countryCode: d.countryCode || 'GL',
+      distanceRequiredKm: Number(d.distanceRequiredKm) || 0,
+      distanceRequired: d.distanceRequired || `${d.distanceRequiredKm || 0} km`,
+      badgeName: d.badgeName || `${d.destination} Medal`,
+      badgeIcon: d.badgeIcon || '/badges/badge1.png',
+    }));
+    return customDestinations;
+  }
 
   private resolveScope(type?: string, scope?: ChallengeScope): ChallengeScope {
     if (scope) return scope;
@@ -559,7 +578,6 @@ export class ChallengesService {
               fname: true,
               lname: true,
               username: true,
-              email: true,
               avatarUrl: true,
               city: true,
               country: true,
@@ -573,14 +591,14 @@ export class ChallengesService {
       const name =
         p.user.fname || p.user.lname
           ? `${p.user.fname || ''} ${p.user.lname || ''}`.trim()
-          : p.user.username || p.user.email;
+          : p.user.username || 'Anonymous Runner';
 
       return {
         id: p.id,
         userId: p.user.id,
+        username: p.user.username,
         rank: skip + idx + 1,
         name,
-        email: p.user.email,
         avatarUrl: p.user.avatarUrl,
         location: [p.user.city, p.user.country].filter(Boolean).join(', ') || null,
         individualKm: Number(p.individualKm.toFixed(1)),
@@ -641,7 +659,7 @@ export class ChallengesService {
 
     let foundCurrent = false;
 
-    const destinations: MilestoneDestination[] = STATIC_DESTINATIONS.map((dest) => {
+    const destinations: MilestoneDestination[] = customDestinations.map((dest) => {
       let status: 'Unlocked' | 'Current' | 'Locked' = 'Locked';
       let unlockDate = 'Not yet reached';
 

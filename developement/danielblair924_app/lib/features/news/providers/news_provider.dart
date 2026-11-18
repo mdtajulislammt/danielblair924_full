@@ -4,21 +4,21 @@ import 'package:first_mile_club/core/network/api_endpoints.dart';
 import 'package:first_mile_club/features/news/models/news_article_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final newsListProvider = StateNotifierProvider.autoDispose<NewsListNotifier, AsyncValue<List<NewsArticleModel>>>((ref) {
-  return NewsListNotifier(ref);
+final newsListProvider = NotifierProvider.autoDispose<NewsListNotifier, AsyncValue<List<NewsArticleModel>>>(() {
+  return NewsListNotifier();
 });
 
-class NewsListNotifier extends StateNotifier<AsyncValue<List<NewsArticleModel>>> {
-  NewsListNotifier(this._ref) : super(const AsyncValue.loading()) {
-    loadNews();
+class NewsListNotifier extends AutoDisposeNotifier<AsyncValue<List<NewsArticleModel>>> {
+  @override
+  AsyncValue<List<NewsArticleModel>> build() {
+    Future.microtask(() => loadNews());
+    return const AsyncValue.loading();
   }
-
-  final Ref _ref;
 
   Future<void> loadNews() async {
     state = const AsyncValue.loading();
     try {
-      final apiClient = _ref.read(apiClientProvider);
+      final apiClient = ref.read(apiClientProvider);
       final response = await apiClient.get<Map<String, dynamic>>(
         ApiEndpoints.news,
         queryParameters: {

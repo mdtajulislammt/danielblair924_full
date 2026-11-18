@@ -201,19 +201,8 @@ class ChallengeNotifier extends Notifier<ChallengeState> {
         errorMessage: null,
       );
     } catch (e) {
-      final fallbackChallenge = _getFallbackChallenge();
       state = state.copyWith(
         isLoading: false,
-        activeChallenge: state.activeChallenge ?? fallbackChallenge,
-        currentCollectiveKm: state.currentCollectiveKm > 0
-            ? state.currentCollectiveKm
-            : fallbackChallenge.currentProgress,
-        destinations: state.destinations.isEmpty
-            ? _getFallbackDestinations(fallbackChallenge.currentProgress)
-            : state.destinations,
-        participants: state.participants.isEmpty
-            ? _getFallbackParticipants()
-            : state.participants,
         errorMessage: e is DioException
             ? (e.response?.data?['message']?.toString() ?? 'Failed to load challenge')
             : e.toString(),
@@ -245,19 +234,16 @@ class ChallengeNotifier extends Notifier<ChallengeState> {
 
       return true;
     } catch (e) {
-      // Optimistic offline mode
-      final updatedChallenge = state.activeChallenge?.copyWith(
-        isJoined: true,
-        participantsCount: (state.activeChallenge?.participantsCount ?? 0) + 1,
-      );
+      final errorMsg = e is DioException
+          ? (e.response?.data?['message']?.toString() ?? 'Failed to join challenge')
+          : e.toString();
 
       state = state.copyWith(
         isJoining: false,
-        activeChallenge: updatedChallenge,
-        actionMessage: 'Joined challenge (Offline mode)',
+        errorMessage: errorMsg,
       );
 
-      return true;
+      return false;
     }
   }
 
@@ -335,44 +321,7 @@ class ChallengeNotifier extends Notifier<ChallengeState> {
   }
 
   List<ChallengeParticipantModel> _getFallbackParticipants() {
-    return const [
-      ChallengeParticipantModel(
-        id: 'p-1',
-        userId: 'u-1',
-        rank: 1,
-        name: 'Sarah Connor',
-        avatarUrl: 'https://i.pravatar.cc/150?img=5',
-        location: 'London, UK',
-        individualKm: 120.0,
-      ),
-      ChallengeParticipantModel(
-        id: 'p-2',
-        userId: 'u-2',
-        rank: 2,
-        name: 'David Kim',
-        avatarUrl: 'https://i.pravatar.cc/150?img=4',
-        location: 'Seoul, Korea',
-        individualKm: 98.5,
-      ),
-      ChallengeParticipantModel(
-        id: 'p-3',
-        userId: 'u-3',
-        rank: 3,
-        name: 'Jane Runner',
-        avatarUrl: 'https://i.pravatar.cc/150?img=9',
-        location: 'Rome, Italy',
-        individualKm: 84.0,
-      ),
-      ChallengeParticipantModel(
-        id: 'p-4',
-        userId: 'u-4',
-        rank: 4,
-        name: 'Carlos Mendoza',
-        avatarUrl: 'https://i.pravatar.cc/150?img=12',
-        location: 'Madrid, Spain',
-        individualKm: 76.2,
-      ),
-    ];
+    return const [];
   }
 }
 

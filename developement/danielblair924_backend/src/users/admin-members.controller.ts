@@ -16,6 +16,7 @@ import { UpdateStatusDto } from './dto/update-status.dto.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../auth/guards/roles.guard.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
+import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 
 @Controller('admin/members')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -29,8 +30,11 @@ export class AdminMembersController {
   }
 
   @Post()
-  async createMember(@Body() dto: CreateUserDto) {
-    return this.usersService.createMember(dto);
+  async createMember(
+    @Body() dto: CreateUserDto,
+    @CurrentUser() currentUser: { role: string },
+  ) {
+    return this.usersService.createMember(dto, currentUser?.role);
   }
 
   @Get(':id')

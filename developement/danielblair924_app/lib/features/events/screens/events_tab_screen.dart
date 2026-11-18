@@ -288,36 +288,80 @@ class _EventsTabScreenState extends ConsumerState<EventsTabScreen> {
   }
 
   Widget _buildMyActivitiesTab(BuildContext context) {
-    return Column(
-      children: [
-        ActivityCard(
-          title: '5K Community Run',
-          dateTimeText: 'Aug 17, 2026 • 7:18 AM',
-          status: ActivityBadgeStatus.pending,
-          stats: const <StatItem>[
-            StatItem(label: 'DISTANCE', value: '5.2 KM'),
-            StatItem(label: 'DURATION', value: '29:57'),
-            StatItem(label: 'PACE', value: '5:45 /km'),
-          ],
-          linkedTitle: '5K Community Run',
-          onTap: () => context.push(AppRoutes.eventSubmissionFeedback),
-          onLinkedTap: () {},
+    final historyState = ref.watch(runHistoryProvider);
+    final items = historyState.items;
+
+    if (historyState.isLoading && items.isEmpty) {
+      return Padding(
+        padding: EdgeInsets.symmetric(vertical: 40.h),
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (items.isEmpty) {
+      return Padding(
+        padding: EdgeInsets.symmetric(vertical: 40.h),
+        child: Center(
+          child: Column(
+            children: [
+              Icon(Icons.directions_run, size: 48, color: AppColors.mutedForeground),
+              SizedBox(height: 12.h),
+              Text(
+                'No Run Submissions Yet',
+                style: context.bodyLarge.copyWith(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 6.h),
+              Text(
+                'Log your first run to see your activities and status here!',
+                style: context.bodySmall.copyWith(color: AppColors.mutedForeground),
+              ),
+            ],
+          ),
         ),
-        16.verticalSpace,
-        ActivityCard(
-          title: 'Sunset City Run 10K',
-          dateTimeText: 'Aug 10, 2026 • 6:30 PM',
-          status: ActivityBadgeStatus.approved,
-          stats: const <StatItem>[
-            StatItem(label: 'DISTANCE', value: '10.1 KM'),
-            StatItem(label: 'DURATION', value: '58:12'),
-            StatItem(label: 'PACE', value: '5:46 /km'),
+      );
+    }
+
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: items.length,
+      separatorBuilder: (_, _) => SizedBox(height: 16.h),
+      itemBuilder: (context, index) {
+        final item = items[index];
+        final isApproved = item.status.toLowerCase() == 'approved';
+        final isRejected = item.status.toLowerCase() == 'rejected';
+
+        ActivityBadgeStatus badgeStatus = ActivityBadgeStatus.pending;
+        if (isApproved) {
+          badgeStatus = ActivityBadgeStatus.approved;
+        } else if (isRejected) {
+          badgeStatus = ActivityBadgeStatus.rejected;
+        }
+
+        return ActivityCard(
+          title: item.activity,
+          dateTimeText: item.date,
+          status: badgeStatus,
+          stats: <StatItem>[
+            StatItem(label: 'DISTANCE', value: item.distance),
+            StatItem(label: 'DURATION', value: item.duration),
+            StatItem(label: 'PACE', value: item.pace),
           ],
-          linkedTitle: 'Sunset City Run 10K',
-          onTap: () => context.push(AppRoutes.eventSubmissionFeedback),
+          linkedTitle: item.activity,
+          onTap: () {
+            if (isRejected) {
+              context.push(
+                AppRoutes.eventSubmissionFeedback,
+                extra: {
+                  'rejectionReason': item.status,
+                  'submittedImageUrl': item.imageUrl,
+                },
+              );
+            }
+          },
           onLinkedTap: () {},
-        ),
-      ],
+        );
+      },
     );
   }
 }

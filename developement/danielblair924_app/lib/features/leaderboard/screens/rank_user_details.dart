@@ -49,7 +49,7 @@ class RankUserDetails extends ConsumerWidget {
               final name = fname.isNotEmpty || lname.isNotEmpty
                   ? '$fname $lname'.trim()
                   : member['username']?.toString() ?? 'Runner';
-              final avatar = member['avatarUrl']?.toString() ?? 'https://i.pravatar.cc/150?img=5';
+              final avatar = member['avatarUrl']?.toString();
               final totalDist = (member['totalDistanceKm'] as num?)?.toDouble() ?? 0.0;
               final city = member['city']?.toString() ?? 'Community';
 

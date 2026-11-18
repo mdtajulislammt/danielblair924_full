@@ -40,14 +40,40 @@ function LoginForm() {
         resData?.accessToken ||
         res?.data?.accessToken;
 
+      const refreshToken =
+        resData?.data?.refreshToken ||
+        resData?.refreshToken ||
+        res?.data?.refreshToken;
+
       const user =
         resData?.data?.user ||
         resData?.user ||
         res?.data?.user;
 
       if (token) {
-        CookieHelper.set({ key: "token", value: token });
-        CookieHelper.set({ key: "accessToken", value: token });
+        CookieHelper.set({
+          key: "token",
+          value: token,
+          httpOnly: false,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "strict",
+        });
+        CookieHelper.set({
+          key: "accessToken",
+          value: token,
+          httpOnly: false,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "strict",
+        });
+        if (refreshToken) {
+          CookieHelper.set({
+            key: "refreshToken",
+            value: refreshToken,
+            httpOnly: false,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+          });
+        }
         if (user) {
           const userRole = user.role || "MEMBER";
           CookieHelper.set({ key: "role", value: userRole });

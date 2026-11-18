@@ -13,16 +13,25 @@ export class CookieHelper {
     context = null,
     expires = 30 * 24 * 60 * 60,
     path = "/",
+    httpOnly = false,
+    secure = false,
+    sameSite = "lax",
   }: {
     key: any;
     value: any;
     context?: any;
     expires?: number;
     path?: string;
+    httpOnly?: boolean;
+    secure?: boolean;
+    sameSite?: boolean | "lax" | "strict" | "none";
   }) {
     nookies.set(context, key, value, {
       maxAge: expires,
       path: path,
+      httpOnly: httpOnly,
+      secure: secure,
+      sameSite: sameSite,
     });
   }
 

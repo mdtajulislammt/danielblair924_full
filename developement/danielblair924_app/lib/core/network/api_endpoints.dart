@@ -39,5 +39,11 @@ class ApiEndpoints {
 
   // File Upload (Static / Local multipart)
   static const String upload = '/upload';
+
+  // Strava Auto-Sync Integration
+  static const String stravaAuthUrl = '/strava/auth-url';
+  static const String stravaStatus = '/strava/status';
+  static const String stravaDisconnect = '/strava/disconnect';
+  static const String stravaExchange = '/strava/exchange';
 }
 

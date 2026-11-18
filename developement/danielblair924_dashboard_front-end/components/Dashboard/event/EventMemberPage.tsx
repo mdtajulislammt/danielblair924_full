@@ -52,32 +52,20 @@ export default function EventMemberPage() {
           if (evtInfo?.coverImageUrl && !eventCoverUrl) {
             setEventCoverUrl(evtInfo.coverImageUrl);
           }
-          if (Array.isArray(data?.participants) && data.participants.length > 0) {
+          if (Array.isArray(data?.participants)) {
             setParticipants(data.participants);
             setTotalItems(data.pagination?.total || data.participants.length);
             return;
           }
         }
 
-        // Fallback demo participant data
-        const adapted = membersData.slice(0, 5).map((m, idx) => ({
-          id: String(m.id),
-          submissionId: `sub-${idx + 1}`,
-          name: m.name,
-          initials: m.initials,
-          email: `${m.name.toLowerCase().replace(/\s+/g, ".")}@example.com`,
-          avatarUrl: undefined,
-          joinDate: m.joinDate,
-          distanceKm: parseFloat(m.totalDistance.replace(/[^0-9.]/g, "")) || 10,
-          submissionStatus: m.status === "Active" ? "APPROVED" : "PENDING",
-          duration: 45,
-          pace: "5:20 min/km",
-        }));
-        setParticipants(adapted);
-        setTotalItems(adapted.length);
+        setParticipants([]);
+        setTotalItems(0);
       })
       .catch((err) => {
-        console.warn("Failed to load event details/participants:", err);
+        console.error("Failed to load event details/participants:", err);
+        setParticipants([]);
+        setTotalItems(0);
       })
       .finally(() => {
         setIsLoading(false);

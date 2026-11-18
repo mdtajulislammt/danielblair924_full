@@ -32,47 +32,18 @@ export default function ChallengeParticipantsTable() {
     })
       .then((res) => {
         const data = res?.data;
-        if (Array.isArray(data?.participants) && data.participants.length > 0) {
+        if (Array.isArray(data?.participants)) {
           setParticipants(data.participants);
           setTotalItems(data.pagination?.total || data.participants.length);
         } else {
-          // Fallback sample leaderboard
-          const demoParticipants: ChallengeParticipant[] = membersData
-            .slice(0, 8)
-            .map((m, idx) => ({
-              id: `part-${idx + 1}`,
-              userId: String(m.id),
-              rank: idx + 1,
-              name: m.name,
-              email: `${m.name.toLowerCase().replace(/\s+/g, ".")}@example.com`,
-              location: "London, UK",
-              individualKm:
-                parseFloat(m.totalDistance.replace(/[^0-9.]/g, "")) ||
-                Math.round(45 - idx * 4),
-              joinedAt: m.joinDate,
-            }));
-          setParticipants(demoParticipants);
-          setTotalItems(demoParticipants.length);
+          setParticipants([]);
+          setTotalItems(0);
         }
       })
       .catch((err) => {
-        console.warn("Failed to load challenge participants:", err);
-        const demoParticipants: ChallengeParticipant[] = membersData
-          .slice(0, 8)
-          .map((m, idx) => ({
-            id: `part-${idx + 1}`,
-            userId: String(m.id),
-            rank: idx + 1,
-            name: m.name,
-            email: `${m.name.toLowerCase().replace(/\s+/g, ".")}@example.com`,
-            location: "London, UK",
-            individualKm:
-              parseFloat(m.totalDistance.replace(/[^0-9.]/g, "")) ||
-              Math.round(45 - idx * 4),
-            joinedAt: m.joinDate,
-          }));
-        setParticipants(demoParticipants);
-        setTotalItems(demoParticipants.length);
+        console.error("Failed to load challenge participants:", err);
+        setParticipants([]);
+        setTotalItems(0);
       })
       .finally(() => {
         setIsLoading(false);

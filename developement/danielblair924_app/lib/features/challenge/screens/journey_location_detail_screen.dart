@@ -91,21 +91,23 @@ class JourneyLocationDetailScreen extends ConsumerWidget {
                     children: participants.isNotEmpty
                         ? participants.map((p) {
                             return UserAvatarBadgeItem(
-                              imageUrl: p.avatarUrl ?? 'https://i.pravatar.cc/150?img=${p.rank + 3}',
+                              imageUrl: p.avatarUrl,
                               badgeText: p.rank.toString(),
                               subtitle: '${p.individualKm.toInt()} km',
                               subtitleStyle: context.titleMedium,
                             );
                           }).toList()
-                        : List.generate(
-                            5,
-                            (i) => UserAvatarBadgeItem(
-                              imageUrl: 'https://i.pravatar.cc/150?img=${i + 4}',
-                              badgeText: '${i + 1}',
-                              subtitle: '${60 - (i * 8)} km',
-                              subtitleStyle: context.titleMedium,
+                        : [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8.0),
+                              child: Text(
+                                'No runners reached this milestone yet.',
+                                style: context.bodySmall.copyWith(
+                                  color: AppColors.subtleForeground,
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
                   ),
                 ),
                 32.verticalSpace,

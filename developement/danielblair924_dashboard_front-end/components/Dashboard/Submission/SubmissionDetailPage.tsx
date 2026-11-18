@@ -337,23 +337,24 @@ export default function SubmissionDetailPage({
                   <div className="flex items-center gap-2.5">
                     <span
                       className={
-                        submission.postedOnTikTok
+                        submission.postedOnTikTok || submission.tiktokVideoUrl
                           ? "text-primaryColor"
                           : "text-gray-500"
                       }
                     >
-                      {submission.postedOnTikTok ? "✓" : "○"}
+                      {submission.postedOnTikTok || submission.tiktokVideoUrl ? "✓" : "○"}
                     </span>
                     <span className="text-descriptionColor">Posted on TikTok</span>
                   </div>
-                  {submission.socialPostUrl && (
+                  {(submission.tiktokVideoUrl || submission.socialPostUrl) && (
                     <a
-                      href={submission.socialPostUrl}
+                      href={submission.tiktokVideoUrl || submission.socialPostUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-primaryColor hover:underline"
+                      className="text-xs font-semibold text-primaryColor hover:underline flex items-center gap-1"
                     >
-                      View Post
+                      <span>Watch TikTok Video</span>
+                      <span>↗</span>
                     </a>
                   )}
                 </div>

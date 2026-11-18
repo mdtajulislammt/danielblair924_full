@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -10,6 +11,7 @@ import {
   Post,
   Put,
   Query,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service.js';
@@ -58,6 +60,16 @@ export class UsersController {
     return this.usersService.updateProfile(userId, dto);
   }
 
+  // 4b. Update avatar: PATCH /api/user/avatar
+  @Patch('avatar')
+  async updateAvatar(
+    @CurrentUser('id') userId: string,
+    @Body() body: { avatarUrl?: string; avatar?: string },
+  ) {
+    const avatarUrl = body.avatarUrl || body.avatar || '';
+    return this.usersService.updateProfile(userId, { avatarUrl });
+  }
+
   // 5. Update shipping recipient profile: PUT /api/user/profile/shipping
   @Put('profile/shipping')
   async updateShipping(
@@ -99,8 +111,11 @@ export class UsersController {
   @Post()
   @UseGuards(RolesGuard)
   @Roles('ADMIN', 'SUPERADMIN')
-  async create(@Body() dto: CreateUserDto) {
-    return this.usersService.createMember(dto);
+  async create(
+    @Body() dto: CreateUserDto,
+    @CurrentUser() currentUser: { role: string },
+  ) {
+    return this.usersService.createMember(dto, currentUser?.role);
   }
 
   // 10. Admin get single user: GET /api/user/:id
@@ -112,12 +127,34 @@ export class UsersController {
   }
 
   // 11. Confirm / set password: PATCH /api/user/:id/password
+  // Allowed only for self (with current password verification) or admin/superadmin via RolesGuard
   @Patch(':id/password')
   async confirmPassword(
     @Param('id') id: string,
-    @Body() body: { token: string; password: string },
+    @CurrentUser() currentUser: { id: string; role: string },
+    @Body() body: { currentPassword?: string; password?: string; newPassword?: string; token?: string },
   ) {
-    return this.usersService.confirmPassword(id, body.token, body.password);
+    const isSelf = currentUser && currentUser.id === id;
+    const isAdmin = currentUser && (currentUser.role === 'ADMIN' || currentUser.role === 'SUPERADMIN');
+
+    if (!isSelf && !isAdmin) {
+      throw new UnauthorizedException('You can only update your own password unless you are an administrator');
+    }
+
+    const newPass = body.password || body.newPassword;
+    if (!newPass) {
+      throw new BadRequestException('New password is required');
+    }
+
+    if (isSelf && !isAdmin) {
+      if (!body.currentPassword) {
+        throw new BadRequestException('Current password is required to change password');
+      }
+      return this.usersService.changePassword(id, body.currentPassword, newPass);
+    }
+
+    // Admin reset
+    return this.usersService.confirmPassword(id, body.token || '', newPass);
   }
 
   // 12. Delete user: DELETE /api/user/:id

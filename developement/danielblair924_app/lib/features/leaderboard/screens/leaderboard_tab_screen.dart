@@ -159,9 +159,7 @@ class _LeaderboardTabScreenState extends ConsumerState<LeaderboardTabScreen> {
                     rank: rank2.rank,
                     name: rank2.name,
                     score: rank2.score,
-                    avatarUrl: rank2.avatarUrl.isNotEmpty
-                        ? rank2.avatarUrl
-                        : 'https://i.pravatar.cc/150?img=5',
+                    avatarUrl: rank2.avatarUrl.isNotEmpty ? rank2.avatarUrl : null,
                   ),
                 )
               : const SizedBox.shrink(),
@@ -181,9 +179,7 @@ class _LeaderboardTabScreenState extends ConsumerState<LeaderboardTabScreen> {
               rank: rank1.rank,
               name: rank1.name,
               score: rank1.score,
-              avatarUrl: rank1.avatarUrl.isNotEmpty
-                  ? rank1.avatarUrl
-                  : 'https://i.pravatar.cc/150?img=11',
+              avatarUrl: rank1.avatarUrl.isNotEmpty ? rank1.avatarUrl : null,
             ),
           ),
         ),
@@ -202,9 +198,7 @@ class _LeaderboardTabScreenState extends ConsumerState<LeaderboardTabScreen> {
                     rank: rank3.rank,
                     name: rank3.name,
                     score: rank3.score,
-                    avatarUrl: rank3.avatarUrl.isNotEmpty
-                        ? rank3.avatarUrl
-                        : 'https://i.pravatar.cc/150?img=3',
+                    avatarUrl: rank3.avatarUrl.isNotEmpty ? rank3.avatarUrl : null,
                   ),
                 )
               : const SizedBox.shrink(),
@@ -235,9 +229,7 @@ class _LeaderboardTabScreenState extends ConsumerState<LeaderboardTabScreen> {
           rank: user.rank,
           name: user.name,
           score: user.score,
-          avatarUrl: user.avatarUrl.isNotEmpty
-              ? user.avatarUrl
-              : 'https://i.pravatar.cc/150?img=${index + 10}',
+          avatarUrl: user.avatarUrl.isNotEmpty ? user.avatarUrl : null,
           rankChange: user.rankChange,
         );
       },

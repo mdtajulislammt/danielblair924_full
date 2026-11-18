@@ -6,19 +6,21 @@ import 'package:first_mile_club/features/leaderboard/models/leaderboard_model.da
 import 'package:first_mile_club/features/leaderboard/widgets/leaderboard_list_filter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final leaderboardProvider = StateNotifierProvider.autoDispose<LeaderboardNotifier, LeaderboardState>((ref) {
-  return LeaderboardNotifier(ref);
+final leaderboardProvider = NotifierProvider.autoDispose<LeaderboardNotifier, LeaderboardState>(() {
+  return LeaderboardNotifier();
 });
 
-class LeaderboardNotifier extends StateNotifier<LeaderboardState> {
-  LeaderboardNotifier(this._ref) : super(const LeaderboardState(isLoading: true)) {
-    loadLeaderboard();
-  }
-
-  final Ref _ref;
+class LeaderboardNotifier extends AutoDisposeNotifier<LeaderboardState> {
   DateFilter _filter = DateFilter.thisMonth;
 
   DateFilter get currentFilter => _filter;
+
+  @override
+  LeaderboardState build() {
+    // Trigger load on initialize
+    Future.microtask(() => loadLeaderboard());
+    return const LeaderboardState(isLoading: true);
+  }
 
   Future<void> changeFilter(DateFilter filter) async {
     if (_filter == filter && !state.isLoading) return;
@@ -29,8 +31,8 @@ class LeaderboardNotifier extends StateNotifier<LeaderboardState> {
   Future<void> loadLeaderboard() async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
-      final apiClient = _ref.read(apiClientProvider);
-      final currentUser = _ref.read(currentUserProvider);
+      final apiClient = ref.read(apiClientProvider);
+      final currentUser = ref.read(currentUserProvider);
 
       String filterParam = 'thisMonth';
       if (_filter == DateFilter.allTime) {

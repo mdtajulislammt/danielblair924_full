@@ -4,6 +4,7 @@ import { Upload, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "react-toastify";
 import { ChallengeService } from "@/service/event/challenge.service";
 
 export interface ChallengeDetailsFormValues {
@@ -54,7 +55,9 @@ export default function ChallengeDetailsForm() {
           setCoverImageUrl(uploadRes.url);
         }
       } catch (err) {
-        console.warn("Challenge cover upload fallback", err);
+        console.error("Challenge cover upload failed:", err);
+        setCoverImageUrl("");
+        toast.error("Failed to upload image. Please try again with a valid JPG/PNG/WEBP image under 5MB.");
       } finally {
         setIsUploadingImage(false);
       }
@@ -62,6 +65,10 @@ export default function ChallengeDetailsForm() {
   };
 
   const onFormSubmit = (data: ChallengeDetailsFormValues) => {
+    // Ensure blob URLs are not saved on upload failure
+    const safeCoverImageUrl =
+      coverImageUrl && !coverImageUrl.startsWith("blob:") ? coverImageUrl : undefined;
+
     const payloadToSave = {
       eventName: data.challengeName,
       title: data.challengeName,
@@ -70,7 +77,7 @@ export default function ChallengeDetailsForm() {
       scope: challengeType === "Community-wide" ? "COMMUNITY_WIDE" : "INDIVIDUAL",
       targetProgress: Number(data.targetProgress) || 500,
       description: data.description,
-      coverImageUrl: coverImageUrl || undefined,
+      coverImageUrl: safeCoverImageUrl,
       isChallenge: true,
     };
 

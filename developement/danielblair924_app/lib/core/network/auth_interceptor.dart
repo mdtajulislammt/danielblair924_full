@@ -42,7 +42,41 @@ class AuthInterceptor extends Interceptor {
     DioException err,
     ErrorInterceptorHandler handler,
   ) async {
-    if (err.response?.statusCode == 401) {
+    if (err.response?.statusCode == 401 && !err.requestOptions.path.contains('/auth/')) {
+      final refreshToken = await _tokenStorage.getRefreshToken();
+      if (refreshToken != null && refreshToken.isNotEmpty) {
+        try {
+          final refreshDio = Dio(BaseOptions(
+            baseUrl: err.requestOptions.baseUrl,
+            headers: {'Content-Type': 'application/json'},
+          ));
+
+          final refreshRes = await refreshDio.post(
+            '/auth/refresh',
+            data: {'refreshToken': refreshToken},
+          );
+
+          final newTokens = refreshRes.data?['data'];
+          final newAccess = newTokens?['accessToken'] as String?;
+          final newRefresh = newTokens?['refreshToken'] as String?;
+
+          if (newAccess != null && newAccess.isNotEmpty) {
+            await _tokenStorage.saveTokens(
+              accessToken: newAccess,
+              refreshToken: newRefresh ?? refreshToken,
+            );
+
+            // Retry the original failed request with the fresh token
+            final opts = err.requestOptions;
+            opts.headers['Authorization'] = 'Bearer $newAccess';
+            final cloneReq = await refreshDio.fetch(opts);
+            return handler.resolve(cloneReq);
+          }
+        } catch (_) {
+          // Refresh failed, proceed to revoke local session
+        }
+      }
+
       // Clear local session on unauthorized responses
       await _tokenStorage.clearAll();
       _onUnauthorized?.call();

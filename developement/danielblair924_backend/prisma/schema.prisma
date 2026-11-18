@@ -47,6 +47,11 @@ enum SubmissionStatus {
   REJECTED
 }
 
+enum SubmissionSource {
+  MANUAL
+  STRAVA_AUTO
+}
+
 enum ActivityType {
   RUNNING
   WALKING
@@ -90,10 +95,18 @@ model User {
   recipientAddress     String? @map("recipient_address")
   recipientPhoneNumber String? @map("recipient_phone_number")
 
+  // Strava OAuth Integration
+  stravaAthleteId      String?   @unique @map("strava_athlete_id")
+  stravaAccessToken    String?   @map("strava_access_token")
+  stravaRefreshToken   String?   @map("strava_refresh_token")
+  stravaTokenExpiresAt DateTime? @map("strava_token_expires_at")
+  isStravaConnected    Boolean   @default(false) @map("is_strava_connected")
+
   // Relations
   submissions          Submission[]
   badges               UserBadge[]
   challengeEntries     ChallengeParticipant[]
+  eventEntries         EventParticipant[]
   sessions             UserSession[]
   notificationSettings NotificationSettings?
   newsPosts            NewsPost[]             @relation("AuthorNews")
@@ -122,6 +135,7 @@ model Event {
   // Relations
   requirements EventRequirements?
   submissions  Submission[]
+  participants EventParticipant[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -198,6 +212,22 @@ model ChallengeParticipant {
   @@map("challenge_participants")
 }
 
+/// Participation records for events.
+model EventParticipant {
+  id        String   @id @default(uuid())
+  eventId   String   @map("event_id")
+  userId    String   @map("user_id")
+  joinedAt  DateTime @default(now()) @map("joined_at")
+  checkedIn Boolean  @default(false) @map("checked_in")
+  checkedInAt DateTime? @map("checked_in_at")
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@map("event_participants")
+}
+
 /// Proof submissions for run verifications.
 model Submission {
   id          String  @id @default(uuid())
@@ -215,8 +245,14 @@ model Submission {
   stravaImageUrl String? @map("strava_image_url")
   gpsImageUrl    String? @map("gps_image_url")
   postedOnTikTok Boolean @default(false) @map("posted_on_tiktok")
+  tiktokVideoUrl String? @map("tiktok_video_url")
   taggedClub     Boolean @default(false) @map("tagged_club")
   usedHashtag    Boolean @default(false) @map("used_hashtag")
+
+  // Strava Auto-Sync metadata
+  stravaActivityId String?           @unique @map("strava_activity_id")
+  source           SubmissionSource @default(MANUAL)
+  summaryPolyline  String?           @map("summary_polyline") @db.Text
 
   // Verification State
   status          SubmissionStatus @default(PENDING)

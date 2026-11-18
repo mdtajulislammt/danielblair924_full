@@ -1,4 +1,5 @@
 import { Fetch } from "../../lib/Fetch";
+import { AppConfig } from "../../config/app.config";
 import { EventRequirements } from "./event.service";
 
 export interface ChallengeItem {
@@ -160,21 +161,23 @@ export const ChallengeService = {
   },
 
   /**
-   * Upload cover image file locally to public/uploads
+   * Upload cover image file to backend /media/upload with absolute URL
    */
   uploadCoverImage: async (file: File): Promise<{ url: string }> => {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      return { url: data?.url || data?.data?.url || "" };
+      const response: any = await Fetch.post("/media/upload", formData);
+      const relativeUrl = response?.data?.data?.url || response?.data?.url || response?.url || "";
+      const base = AppConfig().app.url;
+      const cleanBase = base.endsWith("/") ? base.slice(0, -1) : base;
+      const absoluteUrl = relativeUrl.startsWith("http")
+        ? relativeUrl
+        : `${cleanBase}${relativeUrl.startsWith("/") ? "" : "/"}${relativeUrl}`;
+      return { url: absoluteUrl };
     } catch (e) {
-      console.warn("Local upload fallback:", e);
-      return { url: URL.createObjectURL(file) };
+      console.error("Backend media upload failed:", e);
+      throw e;
     }
   },
 };

@@ -21,20 +21,25 @@ class SubmitRunProofScreen extends ConsumerStatefulWidget {
 }
 
 class _SubmitRunProofScreenState extends ConsumerState<SubmitRunProofScreen> {
-  File? _uploadedImage;
+  File? _stravaImage;
+  File? _gpsImage;
 
   @override
   void initState() {
     super.initState();
     final draft = ref.read(runSubmissionProvider);
-    _uploadedImage = draft.evidenceFile;
+    _stravaImage = draft.stravaFile;
+    _gpsImage = draft.gpsFile;
   }
 
   Future<void> _onNext() async {
     final draft = ref.read(runSubmissionProvider);
 
     // If an image was picked and not yet uploaded, trigger upload
-    if (_uploadedImage != null && (draft.stravaImageUrl == null || draft.stravaImageUrl!.isEmpty)) {
+    final needsStravaUpload = _stravaImage != null && (draft.stravaImageUrl == null || draft.stravaImageUrl!.isEmpty);
+    final needsGpsUpload = _gpsImage != null && (draft.gpsImageUrl == null || draft.gpsImageUrl!.isEmpty);
+
+    if (needsStravaUpload || needsGpsUpload) {
       final success = await ref.read(runSubmissionProvider.notifier).uploadEvidence();
       if (!success && mounted) {
         final err = ref.read(runSubmissionProvider).uploadError ?? 'Failed to upload proof image';
@@ -73,20 +78,48 @@ class _SubmitRunProofScreenState extends ConsumerState<SubmitRunProofScreen> {
                 const Center(
                   child: SectionIntro(
                     title: 'Add your proof',
-                    subtitle: 'Upload a Strava screenshot or GPX file',
+                    subtitle: 'Upload a Strava screenshot or GPS watch evidence',
                   ),
                 ),
 
-                Padding(
-                  padding: const EdgeInsets.only(top: 16),
-                  child: DashedImagePicker(
-                    onImageSelected: (file) {
-                      setState(() {
-                        _uploadedImage = file;
-                      });
-                      ref.read(runSubmissionProvider.notifier).setEvidenceFile(file);
-                    },
-                  ),
+                // Strava Screenshot Uploader
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Strava Run Proof',
+                      style: context.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    8.height,
+                    DashedImagePicker(
+                      onImageSelected: (file) {
+                        setState(() {
+                          _stravaImage = file;
+                        });
+                        ref.read(runSubmissionProvider.notifier).setStravaFile(file);
+                      },
+                    ),
+                  ],
+                ),
+
+                // GPS / Smartwatch Screenshot Uploader
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'GPS / Watch Route Screenshot (Optional)',
+                      style: context.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    8.height,
+                    DashedImagePicker(
+                      onImageSelected: (file) {
+                        setState(() {
+                          _gpsImage = file;
+                        });
+                        ref.read(runSubmissionProvider.notifier).setGpsFile(file);
+                      },
+                    ),
+                  ],
                 ),
 
                 if (draft.uploadError != null)

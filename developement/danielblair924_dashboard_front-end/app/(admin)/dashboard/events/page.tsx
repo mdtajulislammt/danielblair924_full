@@ -33,40 +33,10 @@ export default function EventsPage() {
     try {
       const response = await EventService.getEvents();
       const items: EventItem[] = response?.data?.items || response?.items || response || [];
-
-      if (Array.isArray(items) && items.length > 0) {
-        setEvents(items);
-      } else {
-        // Fallback to sample data adapted to EventItem structure
-        const demoAdapted: EventItem[] = EVENTS_CHALLENGES_DATA.map((d, index) => ({
-          id: String(d.id),
-          title: d.title,
-          eventName: d.title,
-          description: "Community running event",
-          eventDate: d.date,
-          distanceType: d.category || "10K",
-          coverImageUrl: typeof d.image === "string" ? d.image : null,
-          status: (d.status.toUpperCase() as any) || "PUBLISHED",
-          category: d.category || "General",
-          registeredCount: typeof d.registeredCount === "number" ? d.registeredCount : 142,
-        }));
-        setEvents(demoAdapted);
-      }
+      setEvents(Array.isArray(items) ? items : []);
     } catch (err: any) {
-      console.warn("Backend events fetch fallback to demo data:", err?.message);
-      const demoAdapted: EventItem[] = EVENTS_CHALLENGES_DATA.map((d) => ({
-        id: String(d.id),
-        title: d.title,
-        eventName: d.title,
-        description: "Community running event",
-        eventDate: d.date,
-        distanceType: d.category || "10K",
-        coverImageUrl: typeof d.image === "string" ? d.image : null,
-        status: (d.status.toUpperCase() as any) || "PUBLISHED",
-        category: d.category || "General",
-        registeredCount: typeof d.registeredCount === "number" ? d.registeredCount : 142,
-      }));
-      setEvents(demoAdapted);
+      console.error("Backend events fetch error:", err?.message);
+      setEvents([]);
     } finally {
       setIsLoading(false);
     }

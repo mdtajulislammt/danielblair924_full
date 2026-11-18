@@ -30,52 +30,10 @@ export default function ChallengePage() {
       const response = await ChallengeService.getChallenges();
       const items: ChallengeItem[] =
         response?.data?.items || response?.items || response || [];
-
-      if (Array.isArray(items) && items.length > 0) {
-        setChallenges(items);
-      } else {
-        // Fallback to sample demo data
-        const demoAdapted: ChallengeItem[] = CHALLENGES_DATA.map((d, index) => ({
-          id: String(d.id),
-          title: d.title,
-          challengeName: d.title,
-          description: "Run Around the World challenge",
-          scope: d.scope === "Individual" ? "INDIVIDUAL" : "COMMUNITY_WIDE",
-          type: d.scope || "Community-wide",
-          status: (d.status.toUpperCase() as any) || "ACTIVE",
-          currentProgress: d.currentProgress || 240,
-          targetProgress: d.targetProgress || 500,
-          progressUnit: d.progressUnit || "km",
-          progressPercent:
-            d.currentProgress && d.targetProgress
-              ? Math.min(100, (d.currentProgress / d.targetProgress) * 100)
-              : 48,
-          coverImageUrl: typeof d.image === "string" ? d.image : null,
-          participantsCount: 342,
-        }));
-        setChallenges(demoAdapted);
-      }
+      setChallenges(Array.isArray(items) ? items : []);
     } catch (err: any) {
-      console.warn("Backend challenges fetch fallback to demo data:", err?.message);
-      const demoAdapted: ChallengeItem[] = CHALLENGES_DATA.map((d) => ({
-        id: String(d.id),
-        title: d.title,
-        challengeName: d.title,
-        description: "Run Around the World challenge",
-        scope: d.scope === "Individual" ? "INDIVIDUAL" : "COMMUNITY_WIDE",
-        type: d.scope || "Community-wide",
-        status: (d.status.toUpperCase() as any) || "ACTIVE",
-        currentProgress: d.currentProgress || 240,
-        targetProgress: d.targetProgress || 500,
-        progressUnit: d.progressUnit || "km",
-        progressPercent:
-          d.currentProgress && d.targetProgress
-            ? Math.min(100, (d.currentProgress / d.targetProgress) * 100)
-            : 48,
-        coverImageUrl: typeof d.image === "string" ? d.image : null,
-        participantsCount: 342,
-      }));
-      setChallenges(demoAdapted);
+      console.error("Backend challenges fetch error:", err?.message);
+      setChallenges([]);
     } finally {
       setIsLoading(false);
     }

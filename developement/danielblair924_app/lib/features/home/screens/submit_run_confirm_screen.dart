@@ -72,9 +72,9 @@ class _SubmitRunConfirmScreenState extends ConsumerState<SubmitRunConfirmScreen>
     final distanceUnitStr = draft.unit == DistanceUnit.km ? 'KM' : 'MI';
     final formattedDate = DateFormat('MMM dd, yyyy').format(draft.selectedDate);
     final formattedDuration =
-        draft.duration.trim().isNotEmpty ? draft.duration.trim() : '00:30:00';
+        draft.duration.trim().isNotEmpty ? draft.duration.trim() : '00:00:00';
     final formattedPace =
-        draft.pace.isNotEmpty ? draft.pace : '5:30 /km';
+        draft.pace.isNotEmpty ? draft.pace : '0:00 /km';
 
     return Scaffold(
       appBar: AppBar(backgroundColor: Colors.transparent),
@@ -104,13 +104,13 @@ class _SubmitRunConfirmScreenState extends ConsumerState<SubmitRunConfirmScreen>
                   aspectRatio: 7 / 5,
                   child: AppCard(
                     padding: EdgeInsets.zero,
-                    child: draft.evidenceFile != null
+                    child: (draft.stravaFile != null || draft.gpsFile != null)
                         ? ClipRRect(
                             borderRadius: BorderRadius.circular(
                               AppStyles.cardBorderRadius,
                             ),
                             child: Image.file(
-                              draft.evidenceFile!,
+                              (draft.stravaFile ?? draft.gpsFile)!,
                               fit: BoxFit.cover,
                               width: double.infinity,
                             ),

@@ -1,7 +1,9 @@
+import 'package:first_mile_club/core/extensions/extensions.dart';
 import 'package:first_mile_club/core/theme/theme.dart';
 import 'package:first_mile_club/core/utils/utils.dart';
 import 'package:first_mile_club/core/widgets/widgets.dart';
 import 'package:first_mile_club/features/profile/profile.dart';
+import 'package:first_mile_club/features/profile/providers/profile_stats_provider.dart';
 import 'package:first_mile_club/gen/assets.gen.dart';
 import 'package:first_mile_club/shared/widgets/widgets.dart';
 import 'package:flutter/material.dart';

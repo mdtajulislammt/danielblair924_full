@@ -7,19 +7,27 @@ export interface JwtPayload {
   sub: string;
   email: string;
   role: string;
+  type?: string;
 }
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private readonly prisma: PrismaService) {
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      throw new Error('FATAL: JWT_SECRET environment variable is missing.');
+    }
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || 'fmc-super-secret-jwt-key-2026',
+      secretOrKey: jwtSecret,
     });
   }
 
   async validate(payload: JwtPayload) {
+    if (payload.type && payload.type !== 'access') {
+      throw new UnauthorizedException('Invalid token type');
+    }
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
       select: {

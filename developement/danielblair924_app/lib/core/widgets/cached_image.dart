@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../gen/assets.gen.dart';
+import '../constants/app_config.dart';
 import 'shimmer_loading.dart';
 
 class CachedImage extends StatelessWidget {
@@ -25,14 +26,32 @@ class CachedImage extends StatelessWidget {
   final BorderRadiusGeometry? specificBorderRadius;
   final Widget? errorWidget;
 
-  bool get _isSvg => imgUrl.toLowerCase().contains('.svg');
+  String get _resolvedUrl {
+    final trimmed = imgUrl.trim();
+    if (trimmed.isEmpty) return '';
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
+    }
+    // Make relative URL absolute using backend server base URL
+    try {
+      final base = AppConfig.serverBaseUrl.replaceAll(RegExp(r'/api/?$'), '');
+      final cleanBase = base.endsWith('/') ? base.substring(0, base.length - 1) : base;
+      final cleanPath = trimmed.startsWith('/') ? trimmed : '/$trimmed';
+      return '$cleanBase$cleanPath';
+    } catch (_) {
+      return trimmed;
+    }
+  }
+
+  bool get _isSvg => _resolvedUrl.toLowerCase().contains('.svg');
 
   BorderRadiusGeometry get _computedRadius =>
       specificBorderRadius ?? BorderRadius.circular(borderRadius ?? 0);
 
   @override
   Widget build(BuildContext context) {
-    if (imgUrl.isEmpty) {
+    final finalUrl = _resolvedUrl;
+    if (finalUrl.isEmpty) {
       return ClipRRect(
         borderRadius: _computedRadius,
         child: _buildErrorWidget(),
@@ -41,13 +60,13 @@ class CachedImage extends StatelessWidget {
 
     return ClipRRect(
       borderRadius: _computedRadius,
-      child: _isSvg ? _svgImage() : _cachedImage(),
+      child: _isSvg ? _svgImage(finalUrl) : _cachedImage(finalUrl),
     );
   }
 
-  Widget _svgImage() {
+  Widget _svgImage(String url) {
     return SvgPicture.network(
-      imgUrl,
+      url,
       height: height,
       width: width,
       fit: fit ?? BoxFit.contain,
@@ -61,9 +80,9 @@ class CachedImage extends StatelessWidget {
     );
   }
 
-  Widget _cachedImage() {
+  Widget _cachedImage(String url) {
     return CachedNetworkImage(
-      imageUrl: imgUrl,
+      imageUrl: url,
       width: width,
       height: height,
       fit: fit ?? BoxFit.cover,

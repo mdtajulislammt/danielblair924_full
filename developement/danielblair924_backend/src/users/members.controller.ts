@@ -47,6 +47,7 @@ export class MembersController {
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
   async getMemberById(@Param('id') id: string) {
     return this.usersService.findMemberById(id);
   }

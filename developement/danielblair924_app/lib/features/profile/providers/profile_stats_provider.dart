@@ -4,21 +4,21 @@ import 'package:first_mile_club/core/network/api_endpoints.dart';
 import 'package:first_mile_club/features/profile/models/profile_stats_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final profileStatsProvider = StateNotifierProvider.autoDispose<ProfileStatsNotifier, AsyncValue<ProfileStatsModel>>((ref) {
-  return ProfileStatsNotifier(ref);
+final profileStatsProvider = NotifierProvider.autoDispose<ProfileStatsNotifier, AsyncValue<ProfileStatsModel>>(() {
+  return ProfileStatsNotifier();
 });
 
-class ProfileStatsNotifier extends StateNotifier<AsyncValue<ProfileStatsModel>> {
-  ProfileStatsNotifier(this._ref) : super(const AsyncValue.loading()) {
-    loadStats();
+class ProfileStatsNotifier extends AutoDisposeNotifier<AsyncValue<ProfileStatsModel>> {
+  @override
+  AsyncValue<ProfileStatsModel> build() {
+    Future.microtask(() => loadStats());
+    return const AsyncValue.loading();
   }
-
-  final Ref _ref;
 
   Future<void> loadStats() async {
     state = const AsyncValue.loading();
     try {
-      final apiClient = _ref.read(apiClientProvider);
+      final apiClient = ref.read(apiClientProvider);
       final response = await apiClient.get<Map<String, dynamic>>(ApiEndpoints.myStats);
       final data = response.data?['data'] as Map<String, dynamic>? ?? {};
       final stats = ProfileStatsModel.fromJson(data);

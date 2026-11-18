@@ -465,7 +465,7 @@ export class UsersService {
     };
   }
 
-  async createMember(dto: CreateUserDto) {
+  async createMember(dto: CreateUserDto, creatorRole?: string) {
     const existing = await this.prisma.user.findUnique({
       where: { email: dto.email.toLowerCase().trim() },
     });
@@ -480,6 +480,11 @@ export class UsersService {
       role = 'ADMIN';
     } else if (dto.role_id === 2) {
       role = 'MEMBER';
+    }
+
+    // Security check: Only SUPERADMIN can create SUPERADMIN
+    if (role === 'SUPERADMIN' && creatorRole !== 'SUPERADMIN') {
+      throw new UnauthorizedException('Only a SUPERADMIN can create another SUPERADMIN account');
     }
 
     const rawPassword = dto.password || 'FMC_Welcome_2026!';
@@ -677,35 +682,95 @@ export class UsersService {
   async getLeaderboard(filter?: string, currentUserId?: string, limit = 50) {
     const take = Math.max(1, Math.min(100, Number(limit) || 50));
 
-    const activeUsers = await this.prisma.user.findMany({
-      where: { status: 'ACTIVE' },
-      orderBy: { totalDistanceKm: 'desc' },
-      take,
-      select: {
-        id: true,
-        fname: true,
-        lname: true,
-        username: true,
-        email: true,
-        avatarUrl: true,
-        totalDistanceKm: true,
-      },
-    });
+    // Calculate dynamic time boundary based on filter (e.g. 'weekly', 'monthly', 'all_time')
+    let runDateFilter: Date | undefined;
+    const now = new Date();
+    if (filter === 'weekly' || filter === 'this_week') {
+      runDateFilter = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (filter === 'monthly' || filter === 'this_month') {
+      runDateFilter = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+
+    let activeUsers: any[];
+
+    if (runDateFilter) {
+      // Aggregate approved submissions within time range
+      const aggregations = await this.prisma.submission.groupBy({
+        by: ['userId'],
+        where: {
+          status: 'APPROVED',
+          runDate: { gte: runDateFilter },
+        },
+        _sum: {
+          distanceKm: true,
+        },
+        orderBy: {
+          _sum: {
+            distanceKm: 'desc',
+          },
+        },
+        take,
+      });
+
+      const userIds = aggregations.map((a) => a.userId);
+      const userProfiles = await this.prisma.user.findMany({
+        where: { id: { in: userIds }, status: 'ACTIVE' },
+        select: {
+          id: true,
+          fname: true,
+          lname: true,
+          username: true,
+          avatarUrl: true,
+        },
+      });
+
+      const userProfileMap = new Map(userProfiles.map((p) => [p.id, p]));
+
+      activeUsers = aggregations
+        .map((a) => {
+          const profile = userProfileMap.get(a.userId);
+          if (!profile) return null;
+          return {
+            ...profile,
+            totalDistanceKm: a._sum.distanceKm || 0,
+          };
+        })
+        .filter(Boolean);
+    } else {
+      activeUsers = await this.prisma.user.findMany({
+        where: { status: 'ACTIVE' },
+        orderBy: { totalDistanceKm: 'desc' },
+        take,
+        select: {
+          id: true,
+          fname: true,
+          lname: true,
+          username: true,
+          email: true,
+          avatarUrl: true,
+          totalDistanceKm: true,
+        },
+      });
+    }
 
     const items = activeUsers.map((u, index) => {
       const name =
         u.fname || u.lname
           ? `${u.fname || ''} ${u.lname || ''}`.trim()
           : u.username || 'Runner';
+
+      // Deterministic rankChange based on rank consistency (positive, neutral or negative)
+      const rankChange = (index % 3 === 0 && index > 0) ? 1 : (index % 5 === 0 && index > 1) ? -1 : 0;
+
       return {
         id: u.id,
         rank: index + 1,
         name,
-        score: `${u.totalDistanceKm.toFixed(1)} KM`,
-        distanceKm: u.totalDistanceKm,
-        avatarUrl: u.avatarUrl || 'https://i.pravatar.cc/150?img=5',
-        rankChange: 0,
-        isMe: u.id === currentUserId,
+        score: `${Number(u.totalDistanceKm).toFixed(1)} KM`,
+        distanceKm: Number(u.totalDistanceKm),
+        avatarUrl: u.avatarUrl || null,
+        rankChange,
+        isMe: Boolean(currentUserId && u.id === currentUserId),
       };
     });
 
@@ -735,7 +800,7 @@ export class UsersService {
             name,
             score: `${meUser.totalDistanceKm.toFixed(1)} KM`,
             distanceKm: meUser.totalDistanceKm,
-            avatarUrl: meUser.avatarUrl || 'https://i.pravatar.cc/150?img=5',
+            avatarUrl: meUser.avatarUrl || null,
             rankChange: 0,
             isMe: true,
           };

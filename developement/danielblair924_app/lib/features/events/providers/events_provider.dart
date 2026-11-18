@@ -156,26 +156,13 @@ class EventsNotifier extends Notifier<EventsState> {
           ? (e.response?.data?['message']?.toString() ?? 'Failed to join event')
           : e.toString();
 
-      // In local demo mode if server isn't running, still allow local optimistic join
-      final updatedEvents = state.events.map((ev) {
-        if (ev.id == eventId) {
-          return ev.copyWith(
-            isJoined: true,
-            registeredCount: ev.registeredCount + 1,
-          );
-        }
-        return ev;
-      }).toList();
-
       state = state.copyWith(
         isJoining: false,
         joiningEventId: null,
-        events: updatedEvents,
-        actionMessage: 'Joined event locally (Offline mode)',
         errorMessage: errorMsg,
       );
 
-      return true;
+      return false;
     }
   }
 

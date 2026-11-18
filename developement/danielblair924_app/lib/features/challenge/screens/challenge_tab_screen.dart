@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../../core/router/router.dart';
 import '../../../core/theme/theme.dart';
@@ -167,7 +168,7 @@ class _ChallengeTabScreenState extends ConsumerState<ChallengeTabScreen> {
                                 return Padding(
                                   padding: EdgeInsets.only(right: 12.w),
                                   child: UserAvatarBadgeItem(
-                                    imageUrl: p.avatarUrl ?? 'https://i.pravatar.cc/150?img=${p.rank + 3}',
+                                    imageUrl: p.avatarUrl,
                                     badgeText: p.rank.toString(),
                                     subtitle: '${p.individualKm.toInt()} km',
                                     subtitleStyle: context.titleMedium,

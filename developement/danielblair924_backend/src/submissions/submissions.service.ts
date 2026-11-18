@@ -233,10 +233,16 @@ export class SubmissionsService {
       throw new ForbiddenException('You are not authorized to modify this submission');
     }
 
+    // Block re-finalizing already approved submissions to preserve accreditation
+    if (submission.status === 'APPROVED') {
+      throw new BadRequestException('Cannot modify or re-finalize a submission that has already been approved');
+    }
+
     const updated = await this.prisma.submission.update({
       where: { id: submissionId },
       data: {
         postedOnTikTok: dto.postedOnTikTok !== undefined ? dto.postedOnTikTok : submission.postedOnTikTok,
+        tiktokVideoUrl: dto.tiktokVideoUrl !== undefined ? dto.tiktokVideoUrl : (submission as any).tiktokVideoUrl,
         taggedClub: dto.taggedClub !== undefined ? dto.taggedClub : submission.taggedClub,
         usedHashtag: dto.usedHashtag !== undefined ? dto.usedHashtag : submission.usedHashtag,
         status: 'PENDING',
@@ -686,35 +692,35 @@ export class SubmissionsService {
       throw new NotFoundException(`Submission with id '${submissionId}' not found`);
     }
 
-    const isAlreadyApproved = submission.status === 'APPROVED';
+    if (submission.status === 'APPROVED') {
+      throw new BadRequestException('Submission has already been approved and credited.');
+    }
 
-    // 1. Update Submission status
-    const updatedSubmission = await this.prisma.submission.update({
-      where: { id: submissionId },
-      data: {
-        status: 'APPROVED',
-        rejectionReason: null,
-        reviewedAt: new Date(),
-        reviewedById: adminId,
-      },
-    });
+    // Atomic transaction for state transition & distance accreditation
+    const { updatedSubmission, newTotalDistance } = await this.prisma.$transaction(async (tx) => {
+      // 1. Update Submission status
+      const updated = await tx.submission.update({
+        where: { id: submissionId },
+        data: {
+          status: 'APPROVED',
+          rejectionReason: null,
+          reviewedAt: new Date(),
+          reviewedById: adminId,
+        },
+      });
 
-    let newTotalDistance = submission.user.totalDistanceKm;
-
-    // 2. Accredit Distance only if not already approved
-    if (!isAlreadyApproved) {
-      newTotalDistance = submission.user.totalDistanceKm + submission.distanceKm;
-      await this.prisma.user.update({
+      // 2. Accredit Distance
+      const calculatedDistance = submission.user.totalDistanceKm + submission.distanceKm;
+      await tx.user.update({
         where: { id: submission.userId },
         data: {
-          totalDistanceKm: newTotalDistance,
+          totalDistanceKm: calculatedDistance,
         },
       });
 
       // 3. Challenge Progress Accretion
       if (submission.challengeId) {
-        // Upsert ChallengeParticipant
-        const existingParticipant = await this.prisma.challengeParticipant.findUnique({
+        const existingParticipant = await tx.challengeParticipant.findUnique({
           where: {
             challengeId_userId: {
               challengeId: submission.challengeId,
@@ -724,14 +730,14 @@ export class SubmissionsService {
         });
 
         if (existingParticipant) {
-          await this.prisma.challengeParticipant.update({
+          await tx.challengeParticipant.update({
             where: { id: existingParticipant.id },
             data: {
               individualKm: existingParticipant.individualKm + submission.distanceKm,
             },
           });
         } else {
-          await this.prisma.challengeParticipant.create({
+          await tx.challengeParticipant.create({
             data: {
               challengeId: submission.challengeId,
               userId: submission.userId,
@@ -741,7 +747,7 @@ export class SubmissionsService {
         }
 
         // Increment Challenge Total Progress
-        await this.prisma.challenge.update({
+        await tx.challenge.update({
           where: { id: submission.challengeId },
           data: {
             currentProgress: {
@@ -750,7 +756,9 @@ export class SubmissionsService {
           },
         });
       }
-    }
+
+      return { updatedSubmission: updated, newTotalDistance: calculatedDistance };
+    });
 
     // 4. Automated Gamification & Badges Engine
     const unlockedBadges = await this.checkAndAwardBadges(
@@ -789,44 +797,46 @@ export class SubmissionsService {
       throw new NotFoundException(`Submission with id '${submissionId}' not found`);
     }
 
-    // If it was previously approved, deduct the credited distance to maintain integrity
-    if (submission.status === 'APPROVED') {
-      const correctedDistance = Math.max(0, submission.user.totalDistanceKm - submission.distanceKm);
-      await this.prisma.user.update({
-        where: { id: submission.userId },
-        data: { totalDistanceKm: correctedDistance },
-      });
-
-      if (submission.challengeId) {
-        const participant = await this.prisma.challengeParticipant.findUnique({
-          where: {
-            challengeId_userId: {
-              challengeId: submission.challengeId,
-              userId: submission.userId,
-            },
-          },
+    // Atomic transaction for rejection and distance deduction if reverting an approved submission
+    const updated = await this.prisma.$transaction(async (tx) => {
+      if (submission.status === 'APPROVED') {
+        const correctedDistance = Math.max(0, submission.user.totalDistanceKm - submission.distanceKm);
+        await tx.user.update({
+          where: { id: submission.userId },
+          data: { totalDistanceKm: correctedDistance },
         });
-        if (participant) {
-          await this.prisma.challengeParticipant.update({
-            where: { id: participant.id },
-            data: { individualKm: Math.max(0, participant.individualKm - submission.distanceKm) },
+
+        if (submission.challengeId) {
+          const participant = await tx.challengeParticipant.findUnique({
+            where: {
+              challengeId_userId: {
+                challengeId: submission.challengeId,
+                userId: submission.userId,
+              },
+            },
+          });
+          if (participant) {
+            await tx.challengeParticipant.update({
+              where: { id: participant.id },
+              data: { individualKm: Math.max(0, participant.individualKm - submission.distanceKm) },
+            });
+          }
+          await tx.challenge.update({
+            where: { id: submission.challengeId },
+            data: { currentProgress: { decrement: submission.distanceKm } },
           });
         }
-        await this.prisma.challenge.update({
-          where: { id: submission.challengeId },
-          data: { currentProgress: { decrement: submission.distanceKm } },
-        });
       }
-    }
 
-    const updated = await this.prisma.submission.update({
-      where: { id: submissionId },
-      data: {
-        status: 'REJECTED',
-        rejectionReason: dto.reason,
-        reviewedAt: new Date(),
-        reviewedById: adminId,
-      },
+      return tx.submission.update({
+        where: { id: submissionId },
+        data: {
+          status: 'REJECTED',
+          rejectionReason: dto.reason,
+          reviewedAt: new Date(),
+          reviewedById: adminId,
+        },
+      });
     });
 
     return {

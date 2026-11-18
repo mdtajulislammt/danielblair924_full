@@ -10,16 +10,56 @@ const config = {
 
 type AdapterOption = "fetch" | "axios";
 
-// Setup global response interceptor for axios to handle 401s
+// Setup global response interceptor for axios to handle automatic token refresh & 401s
 if (typeof window !== "undefined") {
   axios.interceptors.response.use(
     (response) => response,
-    (error) => {
-      if (error?.response?.status === 401) {
+    async (error) => {
+      const originalRequest = error.config;
+      if (
+        error?.response?.status === 401 &&
+        !originalRequest._retry &&
+        !originalRequest.url?.includes("/auth/")
+      ) {
+        originalRequest._retry = true;
+        const refreshToken = CookieHelper.get({ key: "refreshToken" });
+        if (refreshToken) {
+          try {
+            const apiBase = AppConfig().app.apiUrl;
+            const res = await axios.post(`${apiBase}/auth/refresh`, {
+              refreshToken,
+            });
+            const data = res.data?.data;
+            if (data?.accessToken) {
+              CookieHelper.set({
+                key: "token",
+                value: data.accessToken,
+                httpOnly: false,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: "strict",
+              });
+              if (data.refreshToken) {
+                CookieHelper.set({
+                  key: "refreshToken",
+                  value: data.refreshToken,
+                  httpOnly: false,
+                  secure: process.env.NODE_ENV === "production",
+                  sameSite: "strict",
+                });
+              }
+              originalRequest.headers["Authorization"] = `Bearer ${data.accessToken}`;
+              return axios(originalRequest);
+            }
+          } catch (_) {
+            // Refresh token expired or rejected
+          }
+        }
+
         // If not already on the login page, clear cookies and redirect
         if (!window.location.pathname.startsWith("/login")) {
           CookieHelper.destroy({ key: "token" });
           CookieHelper.destroy({ key: "accessToken" });
+          CookieHelper.destroy({ key: "refreshToken" });
           window.location.href = "/login?expired=true";
         }
       }

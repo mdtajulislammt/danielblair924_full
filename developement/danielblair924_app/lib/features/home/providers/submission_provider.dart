@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
-import '../../../shared/widgets/distance_unit_switch.dart';
+import '../widgets/distance_unit_switch.dart';
 import '../screens/submit_run_prompt_screen.dart';
 
 class RunSubmissionDraftState {
@@ -21,7 +21,8 @@ class RunSubmissionDraftState {
   final String linkedTitle;
 
   // Proof & Evidence
-  final File? evidenceFile;
+  final File? stravaFile;
+  final File? gpsFile;
   final String? stravaImageUrl;
   final String? gpsImageUrl;
   final bool isUploadingProof;
@@ -49,7 +50,8 @@ class RunSubmissionDraftState {
     this.eventId,
     this.challengeId,
     this.linkedTitle = '5K Community Run',
-    this.evidenceFile,
+    this.stravaFile,
+    this.gpsFile,
     this.stravaImageUrl,
     this.gpsImageUrl,
     this.isUploadingProof = false,
@@ -81,11 +83,14 @@ class RunSubmissionDraftState {
     String? eventId,
     String? challengeId,
     String? linkedTitle,
-    File? evidenceFile,
-    bool clearEvidenceFile = false,
+    File? stravaFile,
+    bool clearStravaFile = false,
+    File? gpsFile,
+    bool clearGpsFile = false,
     String? stravaImageUrl,
     bool clearStravaImageUrl = false,
     String? gpsImageUrl,
+    bool clearGpsImageUrl = false,
     bool? isUploadingProof,
     String? uploadError,
     bool clearUploadError = false,
@@ -109,9 +114,10 @@ class RunSubmissionDraftState {
       eventId: eventId ?? this.eventId,
       challengeId: challengeId ?? this.challengeId,
       linkedTitle: linkedTitle ?? this.linkedTitle,
-      evidenceFile: clearEvidenceFile ? null : (evidenceFile ?? this.evidenceFile),
+      stravaFile: clearStravaFile ? null : (stravaFile ?? this.stravaFile),
+      gpsFile: clearGpsFile ? null : (gpsFile ?? this.gpsFile),
       stravaImageUrl: clearStravaImageUrl ? null : (stravaImageUrl ?? this.stravaImageUrl),
-      gpsImageUrl: gpsImageUrl ?? this.gpsImageUrl,
+      gpsImageUrl: clearGpsImageUrl ? null : (gpsImageUrl ?? this.gpsImageUrl),
       isUploadingProof: isUploadingProof ?? this.isUploadingProof,
       uploadError: clearUploadError ? null : (uploadError ?? this.uploadError),
       postedOnTikTok: postedOnTikTok ?? this.postedOnTikTok,
@@ -146,6 +152,18 @@ class RunSubmissionNotifier extends Notifier<RunSubmissionDraftState> {
     );
   }
 
+  void setLinkedTarget({
+    String? eventId,
+    String? challengeId,
+    String? linkedTitle,
+  }) {
+    state = state.copyWith(
+      eventId: eventId,
+      challengeId: challengeId,
+      linkedTitle: linkedTitle ?? state.linkedTitle,
+    );
+  }
+
   void setLogDetails({
     required double distance,
     required DistanceUnit unit,
@@ -176,17 +194,31 @@ class RunSubmissionNotifier extends Notifier<RunSubmissionDraftState> {
     );
   }
 
-  void setEvidenceFile(File? file) {
+  void setStravaFile(File? file) {
     state = state.copyWith(
-      evidenceFile: file,
+      stravaFile: file,
       clearStravaImageUrl: file == null,
-      clearEvidenceFile: file == null,
+      clearStravaFile: file == null,
       clearUploadError: true,
     );
   }
 
+  void setGpsFile(File? file) {
+    state = state.copyWith(
+      gpsFile: file,
+      clearGpsImageUrl: file == null,
+      clearGpsFile: file == null,
+      clearUploadError: true,
+    );
+  }
+
+  // Backward compatibility alias for single evidence picker
+  void setEvidenceFile(File? file) {
+    setStravaFile(file);
+  }
+
   Future<bool> uploadEvidence() async {
-    if (state.evidenceFile == null) return true;
+    if (state.stravaFile == null && state.gpsFile == null) return true;
 
     state = state.copyWith(
       isUploadingProof: true,
@@ -194,34 +226,45 @@ class RunSubmissionNotifier extends Notifier<RunSubmissionDraftState> {
     );
 
     try {
-      final response = await _apiClient.uploadFile(
-        ApiEndpoints.upload,
-        file: state.evidenceFile!,
-      );
+      String? stravaUrl = state.stravaImageUrl;
+      String? gpsUrl = state.gpsImageUrl;
 
-      final data = response.data;
-      String? uploadedUrl;
-      if (data is Map<String, dynamic>) {
-        if (data['data'] is Map<String, dynamic>) {
-          uploadedUrl = data['data']['url'] as String?;
-        } else if (data['url'] is String) {
-          uploadedUrl = data['url'] as String?;
+      if (state.stravaFile != null && (stravaUrl == null || stravaUrl.isEmpty)) {
+        final response = await _apiClient.uploadFile(
+          ApiEndpoints.upload,
+          file: state.stravaFile!,
+        );
+        final data = response.data;
+        if (data is Map<String, dynamic>) {
+          if (data['data'] is Map<String, dynamic>) {
+            stravaUrl = data['data']['url'] as String?;
+          } else if (data['url'] is String) {
+            stravaUrl = data['url'] as String?;
+          }
         }
       }
 
-      if (uploadedUrl != null && uploadedUrl.isNotEmpty) {
-        state = state.copyWith(
-          stravaImageUrl: uploadedUrl,
-          isUploadingProof: false,
+      if (state.gpsFile != null && (gpsUrl == null || gpsUrl.isEmpty)) {
+        final response = await _apiClient.uploadFile(
+          ApiEndpoints.upload,
+          file: state.gpsFile!,
         );
-        return true;
-      } else {
-        state = state.copyWith(
-          isUploadingProof: false,
-          uploadError: 'Unable to retrieve uploaded file URL',
-        );
-        return false;
+        final data = response.data;
+        if (data is Map<String, dynamic>) {
+          if (data['data'] is Map<String, dynamic>) {
+            gpsUrl = data['data']['url'] as String?;
+          } else if (data['url'] is String) {
+            gpsUrl = data['url'] as String?;
+          }
+        }
       }
+
+      state = state.copyWith(
+        stravaImageUrl: stravaUrl,
+        gpsImageUrl: gpsUrl,
+        isUploadingProof: false,
+      );
+      return true;
     } on DioException catch (e) {
       final msg = e.response?.data?['message']?.toString() ??
           e.message ??
@@ -261,8 +304,9 @@ class RunSubmissionNotifier extends Notifier<RunSubmissionDraftState> {
     );
 
     try {
-      // 1. Upload evidence image if selected and not yet uploaded
-      if (state.evidenceFile != null && (state.stravaImageUrl == null || state.stravaImageUrl!.isEmpty)) {
+      // 1. Upload evidence images if selected and not yet uploaded
+      if ((state.stravaFile != null && (state.stravaImageUrl == null || state.stravaImageUrl!.isEmpty)) ||
+          (state.gpsFile != null && (state.gpsImageUrl == null || state.gpsImageUrl!.isEmpty))) {
         final uploadOk = await uploadEvidence();
         if (!uploadOk) {
           state = state.copyWith(
@@ -273,22 +317,38 @@ class RunSubmissionNotifier extends Notifier<RunSubmissionDraftState> {
         }
       }
 
-      // 2. Prepare payload
+      // 2. Validate real user input: distance must be strictly greater than 0
       final double distanceKm = double.parse(state.distanceInKm.toStringAsFixed(2));
-      final String duration = state.duration.trim().isNotEmpty
-          ? state.duration.trim()
-          : '00:30:00';
+      if (distanceKm <= 0.0) {
+        state = state.copyWith(
+          isSubmitting: false,
+          submitError: 'Please enter a valid run distance greater than 0.',
+        );
+        return false;
+      }
+
+      final String duration = state.duration.trim();
+      if (duration.isEmpty) {
+        state = state.copyWith(
+          isSubmitting: false,
+          submitError: 'Please enter your actual run duration.',
+        );
+        return false;
+      }
+
       final String pace = state.pace.isNotEmpty
           ? state.pace
           : _calculatePace(distanceKm, duration);
 
       final Map<String, dynamic> payload = {
-        'distanceKm': distanceKm <= 0 ? 1.0 : distanceKm,
+        'distanceKm': distanceKm,
         'duration': duration,
         'pace': pace,
         'runDate': state.selectedDate.toIso8601String(),
         if (state.stravaImageUrl != null && state.stravaImageUrl!.isNotEmpty)
           'stravaImageUrl': state.stravaImageUrl,
+        if (state.gpsImageUrl != null && state.gpsImageUrl!.isNotEmpty)
+          'gpsImageUrl': state.gpsImageUrl,
         if (state.eventId != null && state.eventId!.isNotEmpty)
           'eventId': state.eventId,
         if (state.challengeId != null && state.challengeId!.isNotEmpty)
@@ -311,7 +371,7 @@ class RunSubmissionNotifier extends Notifier<RunSubmissionDraftState> {
         }
       }
 
-      // 3. If TikTok URL is present, call finalize endpoint
+      // 3. If TikTok URL is present, call finalize endpoint and handle errors explicitly
       if (subId != null && state.tiktokVideoUrl.trim().isNotEmpty) {
         try {
           await _apiClient.post(
@@ -323,8 +383,15 @@ class RunSubmissionNotifier extends Notifier<RunSubmissionDraftState> {
               'usedHashtag': state.usedHashtag,
             },
           );
-        } catch (_) {
-          // Non-blocking fallback
+        } on DioException catch (finalizeErr) {
+          final finalizeMsg = finalizeErr.response?.data?['message']?.toString() ??
+              finalizeErr.message ??
+              'Failed to finalize social proof';
+          state = state.copyWith(
+            isSubmitting: false,
+            submitError: 'Submission created, but finalize failed: $finalizeMsg',
+          );
+          return false;
         }
       }
 

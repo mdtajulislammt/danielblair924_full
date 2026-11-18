@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -36,6 +37,16 @@ export class AdminChallengesController {
   @Get(':id/destinations')
   async getDestinations(@Param('id') id: string) {
     return this.challengesService.getDestinations(id);
+  }
+
+  @Put('ratw/destinations')
+  async updateRatwDestinations(@Body() body: { destinations: any[] }) {
+    const updated = this.challengesService.updateDestinationsList(body.destinations || []);
+    return {
+      status: 'success',
+      data: updated,
+      message: 'RATW destinations successfully updated by admin',
+    };
   }
 
   @Get(':id/participants')

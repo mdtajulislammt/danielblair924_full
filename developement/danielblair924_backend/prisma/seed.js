@@ -16,20 +16,24 @@ async function main() {
   console.log('🌱 Starting FMC Platform Database Seed...');
   console.log('Connecting to:', connectionString);
 
-  const passwordHash = await bcrypt.hash('Password123!', 10);
+  // Strong production-grade distinct passwords for seed accounts
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD || 'FMC_Admin#Secure2026!';
+  const memberPassword = process.env.SEED_MEMBER_PASSWORD || 'FMC_Runner#Club2026!';
+  const adminPasswordHash = await bcrypt.hash(adminPassword, 10);
+  const memberPasswordHash = await bcrypt.hash(memberPassword, 10);
 
   // 1. Seed Super Admin
   const admin = await prisma.user.upsert({
     where: { email: 'admin@fmc.com' },
     update: {
-      passwordHash,
+      passwordHash: adminPasswordHash,
       role: 'SUPERADMIN',
       status: 'ACTIVE',
     },
     create: {
       email: 'admin@fmc.com',
       username: 'admin',
-      passwordHash,
+      passwordHash: adminPasswordHash,
       fname: 'FMC',
       lname: 'Administrator',
       role: 'SUPERADMIN',
@@ -44,14 +48,14 @@ async function main() {
   const runner = await prisma.user.upsert({
     where: { email: 'runner@fmc.com' },
     update: {
-      passwordHash,
+      passwordHash: memberPasswordHash,
       role: 'MEMBER',
       status: 'ACTIVE',
     },
     create: {
       email: 'runner@fmc.com',
       username: 'marcus_vance',
-      passwordHash,
+      passwordHash: memberPasswordHash,
       fname: 'Marcus',
       lname: 'Vance',
       role: 'MEMBER',

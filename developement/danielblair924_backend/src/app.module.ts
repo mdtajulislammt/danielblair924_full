@@ -10,6 +10,7 @@ import { ChallengesModule } from './challenges/challenges.module.js';
 import { BadgesModule } from './badges/badges.module.js';
 import { NewsModule } from './news/news.module.js';
 import { SettingsModule } from './settings/settings.module.js';
+import { StravaModule } from './strava/strava.module.js';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { SettingsModule } from './settings/settings.module.js';
     BadgesModule,
     NewsModule,
     SettingsModule,
+    StravaModule,
   ],
   controllers: [AppController],
   providers: [AppService],
