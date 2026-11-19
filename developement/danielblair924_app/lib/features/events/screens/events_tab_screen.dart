@@ -7,7 +7,7 @@ import '../../../core/router/router.dart';
 import '../../../core/theme/theme.dart';
 import '../../../core/widgets/widgets.dart';
 import '../../../shared/widgets/widgets.dart';
-import '../models/event_model.dart';
+import '../../profile/providers/run_history_provider.dart';
 import '../providers/events_provider.dart';
 import '../widgets/activity_card.dart';
 import '../widgets/club_event_card.dart';
@@ -354,7 +354,7 @@ class _EventsTabScreenState extends ConsumerState<EventsTabScreen> {
                 AppRoutes.eventSubmissionFeedback,
                 extra: {
                   'rejectionReason': item.status,
-                  'submittedImageUrl': item.imageUrl,
+                  'submittedImageUrl': item.stravaImageUrl ?? item.gpsImageUrl,
                 },
               );
             }

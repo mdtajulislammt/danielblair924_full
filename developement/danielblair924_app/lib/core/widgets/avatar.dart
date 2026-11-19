@@ -1,11 +1,10 @@
-import 'dart:io';
-
 import 'package:first_mile_club/core/theme/app_colors.dart';
 import 'package:first_mile_club/core/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'cached_image.dart';
+import 'local_file_image.dart';
 
 // border: .all(width: 1, color: context.scheme.primary),
 class Avatar extends StatelessWidget {
@@ -127,9 +126,8 @@ class Avatar extends StatelessWidget {
       );
     }
 
-    // Local File Path
-    return Image.file(
-      File(path),
+    return LocalFileImage(
+      path: path,
       width: size,
       height: size,
       fit: BoxFit.cover,

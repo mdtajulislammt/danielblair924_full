@@ -1,5 +1,6 @@
 import 'package:first_mile_club/core/extensions/extensions.dart';
 import 'package:first_mile_club/core/router/router.dart';
+import 'package:first_mile_club/core/widgets/widgets.dart';
 import 'package:first_mile_club/core/theme/theme.dart';
 import 'package:first_mile_club/features/leaderboard/leaderboard.dart';
 import 'package:first_mile_club/shared/widgets/widgets.dart';
@@ -159,7 +160,7 @@ class _LeaderboardTabScreenState extends ConsumerState<LeaderboardTabScreen> {
                     rank: rank2.rank,
                     name: rank2.name,
                     score: rank2.score,
-                    avatarUrl: rank2.avatarUrl.isNotEmpty ? rank2.avatarUrl : null,
+                    avatarUrl: rank2.avatarUrl,
                   ),
                 )
               : const SizedBox.shrink(),
@@ -179,7 +180,7 @@ class _LeaderboardTabScreenState extends ConsumerState<LeaderboardTabScreen> {
               rank: rank1.rank,
               name: rank1.name,
               score: rank1.score,
-              avatarUrl: rank1.avatarUrl.isNotEmpty ? rank1.avatarUrl : null,
+              avatarUrl: rank1.avatarUrl,
             ),
           ),
         ),
@@ -198,7 +199,7 @@ class _LeaderboardTabScreenState extends ConsumerState<LeaderboardTabScreen> {
                     rank: rank3.rank,
                     name: rank3.name,
                     score: rank3.score,
-                    avatarUrl: rank3.avatarUrl.isNotEmpty ? rank3.avatarUrl : null,
+                    avatarUrl: rank3.avatarUrl,
                   ),
                 )
               : const SizedBox.shrink(),
@@ -229,7 +230,7 @@ class _LeaderboardTabScreenState extends ConsumerState<LeaderboardTabScreen> {
           rank: user.rank,
           name: user.name,
           score: user.score,
-          avatarUrl: user.avatarUrl.isNotEmpty ? user.avatarUrl : null,
+          avatarUrl: user.avatarUrl,
           rankChange: user.rankChange,
         );
       },

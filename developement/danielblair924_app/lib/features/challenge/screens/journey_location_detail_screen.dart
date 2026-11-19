@@ -91,7 +91,7 @@ class JourneyLocationDetailScreen extends ConsumerWidget {
                     children: participants.isNotEmpty
                         ? participants.map((p) {
                             return UserAvatarBadgeItem(
-                              imageUrl: p.avatarUrl,
+                              imageUrl: p.avatarUrl ?? '',
                               badgeText: p.rank.toString(),
                               subtitle: '${p.individualKm.toInt()} km',
                               subtitleStyle: context.titleMedium,

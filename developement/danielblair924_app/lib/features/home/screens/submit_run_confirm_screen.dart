@@ -13,6 +13,7 @@ import '../../../gen/assets.gen.dart';
 import '../../../shared/widgets/widgets.dart';
 import '../../profile/providers/run_history_provider.dart';
 import '../providers/submission_provider.dart';
+import '../widgets/distance_unit_switch.dart';
 
 class SubmitRunConfirmScreen extends ConsumerStatefulWidget {
   const SubmitRunConfirmScreen({super.key});
@@ -109,8 +110,8 @@ class _SubmitRunConfirmScreenState extends ConsumerState<SubmitRunConfirmScreen>
                             borderRadius: BorderRadius.circular(
                               AppStyles.cardBorderRadius,
                             ),
-                            child: Image.file(
-                              (draft.stravaFile ?? draft.gpsFile)!,
+                            child: XFileImage(
+                              file: (draft.stravaFile ?? draft.gpsFile)!,
                               fit: BoxFit.cover,
                               width: double.infinity,
                             ),

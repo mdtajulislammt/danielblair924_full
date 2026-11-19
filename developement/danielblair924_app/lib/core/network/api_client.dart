@@ -1,5 +1,4 @@
-import 'dart:io';
-
+import 'package:cross_file/cross_file.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -158,15 +157,18 @@ class ApiClient {
   // File Upload Helper (Multipart)
   Future<Response<T>> uploadFile<T>(
     String path, {
-    required File file,
+    required XFile file,
     String fileFieldName = 'file',
     Map<String, dynamic>? extraData,
     void Function(int sent, int total)? onSendProgress,
   }) async {
-    final fileName = file.path.split('/').last;
+    final bytes = await file.readAsBytes();
+    final fileName = file.name.trim().isNotEmpty
+        ? file.name
+        : file.path.split(RegExp(r'[/\\]')).last;
     final formData = FormData.fromMap({
-      fileFieldName: await MultipartFile.fromFile(
-        file.path,
+      fileFieldName: MultipartFile.fromBytes(
+        bytes,
         filename: fileName,
       ),
       if (extraData != null) ...extraData,

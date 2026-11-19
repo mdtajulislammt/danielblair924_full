@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/extensions/sizedbox_extension.dart';
 import '../../../core/router/router.dart';
+import '../../../core/theme/theme.dart';
 import '../../../core/utils/utils.dart';
 import '../../../core/widgets/widgets.dart';
 import '../../../gen/assets.gen.dart';
@@ -43,8 +44,8 @@ class _SubmitRunPromptScreenState extends ConsumerState<SubmitRunPromptScreen> {
 
     // Fetch live events and challenge data
     Future.microtask(() {
-      ref.read(eventsNotifierProvider.notifier).fetchEvents();
-      ref.read(challengeNotifierProvider.notifier).fetchActiveChallenge();
+      ref.read(eventsProvider.notifier).fetchEvents();
+      ref.read(challengeProvider.notifier).fetchChallengeData();
     });
   }
 
@@ -72,8 +73,8 @@ class _SubmitRunPromptScreenState extends ConsumerState<SubmitRunPromptScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final eventsState = ref.watch(eventsNotifierProvider);
-    final challengeState = ref.watch(challengeNotifierProvider);
+    final eventsState = ref.watch(eventsProvider);
+    final challengeState = ref.watch(challengeProvider);
     final stravaState = ref.watch(stravaSyncProvider);
 
     return Scaffold(
@@ -214,9 +215,9 @@ class _SubmitRunPromptScreenState extends ConsumerState<SubmitRunPromptScreen> {
                                           color: isSelected ? Colors.white : AppColors.subtleForeground,
                                         ),
                                       ),
-                                      if (ev.location != null && ev.location!.isNotEmpty)
+                                      if (ev.distanceType != null && ev.distanceType!.isNotEmpty)
                                         Text(
-                                          ev.location!,
+                                          ev.distanceType!,
                                           style: context.bodySmall.copyWith(
                                             color: AppColors.subtleForeground.withOpacity(0.7),
                                           ),

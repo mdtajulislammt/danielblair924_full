@@ -34,13 +34,14 @@ class StravaSyncState {
     String? successMessage,
     bool clearError = false,
     bool clearSuccess = false,
+    bool clearAthleteId = false,
   }) {
     return StravaSyncState(
       isLoading: isLoading ?? this.isLoading,
       isConnecting: isConnecting ?? this.isConnecting,
       isDisconnecting: isDisconnecting ?? this.isDisconnecting,
       isConnected: isConnected ?? this.isConnected,
-      athleteId: athleteId ?? this.athleteId,
+      athleteId: clearAthleteId ? null : (athleteId ?? this.athleteId),
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       successMessage: clearSuccess ? null : (successMessage ?? this.successMessage),
     );
@@ -52,7 +53,7 @@ final stravaSyncProvider =
   StravaSyncNotifier.new,
 );
 
-class StravaSyncNotifier extends AutoDisposeNotifier<StravaSyncState> {
+class StravaSyncNotifier extends Notifier<StravaSyncState> {
   ApiClient get _apiClient => ref.read(apiClientProvider);
 
   @override
@@ -136,7 +137,7 @@ class StravaSyncNotifier extends AutoDisposeNotifier<StravaSyncState> {
       state = state.copyWith(
         isDisconnecting: false,
         isConnected: false,
-        athleteId: null,
+        clearAthleteId: true,
         successMessage: msg,
       );
       return true;

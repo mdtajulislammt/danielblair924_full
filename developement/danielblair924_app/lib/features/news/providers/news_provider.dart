@@ -8,7 +8,7 @@ final newsListProvider = NotifierProvider.autoDispose<NewsListNotifier, AsyncVal
   return NewsListNotifier();
 });
 
-class NewsListNotifier extends AutoDisposeNotifier<AsyncValue<List<NewsArticleModel>>> {
+class NewsListNotifier extends Notifier<AsyncValue<List<NewsArticleModel>>> {
   @override
   AsyncValue<List<NewsArticleModel>> build() {
     Future.microtask(() => loadNews());

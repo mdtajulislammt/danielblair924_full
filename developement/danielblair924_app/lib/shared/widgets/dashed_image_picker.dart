@@ -1,7 +1,8 @@
-import 'dart:io';
 import 'dart:ui';
 
+import 'package:cross_file/cross_file.dart';
 import 'package:first_mile_club/core/theme/theme.dart';
+import 'package:first_mile_club/core/widgets/xfile_image.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -15,7 +16,7 @@ class DashedImagePicker extends StatefulWidget {
     this.backgroundColor = AppColors.elevated,
   });
 
-  final ValueChanged<File?> onImageSelected;
+  final ValueChanged<XFile?> onImageSelected;
   final double height;
   final double borderRadius;
   final Color accentColor;
@@ -26,7 +27,7 @@ class DashedImagePicker extends StatefulWidget {
 }
 
 class _DashedImagePickerState extends State<DashedImagePicker> {
-  File? _selectedImage;
+  XFile? _selectedImage;
   final ImagePicker _picker = ImagePicker();
 
   Future<void> _pickImage() async {
@@ -36,11 +37,10 @@ class _DashedImagePickerState extends State<DashedImagePicker> {
     );
 
     if (pickedFile != null) {
-      final file = File(pickedFile.path);
       setState(() {
-        _selectedImage = file;
+        _selectedImage = pickedFile;
       });
-      widget.onImageSelected(file);
+      widget.onImageSelected(pickedFile);
     }
   }
 
@@ -88,7 +88,7 @@ class _DashedImagePickerState extends State<DashedImagePicker> {
                       ? Stack(
                           fit: StackFit.expand,
                           children: [
-                            Image.file(_selectedImage!, fit: BoxFit.cover),
+                            XFileImage(file: _selectedImage!, fit: BoxFit.cover),
                             // Remove Button
                             Positioned(
                               top: 8,

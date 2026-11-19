@@ -8,7 +8,7 @@ final myBadgesProvider = NotifierProvider.autoDispose<MyBadgesNotifier, AsyncVal
   return MyBadgesNotifier();
 });
 
-class MyBadgesNotifier extends AutoDisposeNotifier<AsyncValue<MyBadgesModel>> {
+class MyBadgesNotifier extends Notifier<AsyncValue<MyBadgesModel>> {
   @override
   AsyncValue<MyBadgesModel> build() {
     Future.microtask(() => loadBadges());

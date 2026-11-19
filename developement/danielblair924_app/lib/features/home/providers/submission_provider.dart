@@ -1,7 +1,5 @@
-import 'dart:io';
-
+import 'package:cross_file/cross_file.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
@@ -21,8 +19,8 @@ class RunSubmissionDraftState {
   final String linkedTitle;
 
   // Proof & Evidence
-  final File? stravaFile;
-  final File? gpsFile;
+  final XFile? stravaFile;
+  final XFile? gpsFile;
   final String? stravaImageUrl;
   final String? gpsImageUrl;
   final bool isUploadingProof;
@@ -67,7 +65,7 @@ class RunSubmissionDraftState {
   }) : selectedDate = selectedDate ?? DateTime.now();
 
   double get distanceInKm {
-    if (unit == DistanceUnit.mi) {
+    if (unit == DistanceUnit.miles) {
       return distance * 1.60934;
     }
     return distance;
@@ -83,9 +81,9 @@ class RunSubmissionDraftState {
     String? eventId,
     String? challengeId,
     String? linkedTitle,
-    File? stravaFile,
+    XFile? stravaFile,
     bool clearStravaFile = false,
-    File? gpsFile,
+    XFile? gpsFile,
     bool clearGpsFile = false,
     String? stravaImageUrl,
     bool clearStravaImageUrl = false,
@@ -177,7 +175,7 @@ class RunSubmissionNotifier extends Notifier<RunSubmissionDraftState> {
     final calculatedPace = (pace != null && pace.isNotEmpty)
         ? pace
         : _calculatePace(
-            unit == DistanceUnit.mi ? distance * 1.60934 : distance,
+            unit == DistanceUnit.miles ? distance * 1.60934 : distance,
             duration ?? '',
           );
 
@@ -194,7 +192,7 @@ class RunSubmissionNotifier extends Notifier<RunSubmissionDraftState> {
     );
   }
 
-  void setStravaFile(File? file) {
+  void setStravaFile(XFile? file) {
     state = state.copyWith(
       stravaFile: file,
       clearStravaImageUrl: file == null,
@@ -203,7 +201,7 @@ class RunSubmissionNotifier extends Notifier<RunSubmissionDraftState> {
     );
   }
 
-  void setGpsFile(File? file) {
+  void setGpsFile(XFile? file) {
     state = state.copyWith(
       gpsFile: file,
       clearGpsImageUrl: file == null,
@@ -213,7 +211,7 @@ class RunSubmissionNotifier extends Notifier<RunSubmissionDraftState> {
   }
 
   // Backward compatibility alias for single evidence picker
-  void setEvidenceFile(File? file) {
+  void setEvidenceFile(XFile? file) {
     setStravaFile(file);
   }
 

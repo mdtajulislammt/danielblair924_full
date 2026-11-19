@@ -9,6 +9,8 @@ export 'avatar.dart';
 export 'cached_image.dart';
 export 'flanking_text_header.dart';
 export 'full_height_scroll_view.dart';
+export 'local_file_image.dart';
+export 'xfile_image.dart';
 export 'input_label.dart';
 export 'section_header.dart';
 export 'section_intro.dart';

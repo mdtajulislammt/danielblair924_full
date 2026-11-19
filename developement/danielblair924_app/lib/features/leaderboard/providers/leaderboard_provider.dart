@@ -10,7 +10,7 @@ final leaderboardProvider = NotifierProvider.autoDispose<LeaderboardNotifier, Le
   return LeaderboardNotifier();
 });
 
-class LeaderboardNotifier extends AutoDisposeNotifier<LeaderboardState> {
+class LeaderboardNotifier extends Notifier<LeaderboardState> {
   DateFilter _filter = DateFilter.thisMonth;
 
   DateFilter get currentFilter => _filter;

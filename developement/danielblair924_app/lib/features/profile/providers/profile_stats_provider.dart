@@ -8,7 +8,7 @@ final profileStatsProvider = NotifierProvider.autoDispose<ProfileStatsNotifier, 
   return ProfileStatsNotifier();
 });
 
-class ProfileStatsNotifier extends AutoDisposeNotifier<AsyncValue<ProfileStatsModel>> {
+class ProfileStatsNotifier extends Notifier<AsyncValue<ProfileStatsModel>> {
   @override
   AsyncValue<ProfileStatsModel> build() {
     Future.microtask(() => loadStats());

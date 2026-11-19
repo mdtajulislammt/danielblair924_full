@@ -168,7 +168,7 @@ class _ChallengeTabScreenState extends ConsumerState<ChallengeTabScreen> {
                                 return Padding(
                                   padding: EdgeInsets.only(right: 12.w),
                                   child: UserAvatarBadgeItem(
-                                    imageUrl: p.avatarUrl,
+                                    imageUrl: p.avatarUrl ?? '',
                                     badgeText: p.rank.toString(),
                                     subtitle: '${p.individualKm.toInt()} km',
                                     subtitleStyle: context.titleMedium,

@@ -1,10 +1,10 @@
-import 'dart:io';
-
+import 'package:cross_file/cross_file.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/extensions/sizedbox_extension.dart';
 import '../../../core/router/router.dart';
 import '../../../core/theme/theme.dart';
 import '../../../core/utils/utils.dart';
@@ -21,8 +21,8 @@ class SubmitRunProofScreen extends ConsumerStatefulWidget {
 }
 
 class _SubmitRunProofScreenState extends ConsumerState<SubmitRunProofScreen> {
-  File? _stravaImage;
-  File? _gpsImage;
+  XFile? _stravaImage;
+  XFile? _gpsImage;
 
   @override
   void initState() {

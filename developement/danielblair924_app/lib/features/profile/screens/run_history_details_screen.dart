@@ -11,6 +11,7 @@ import '../../../core/widgets/widgets.dart';
 import '../../../gen/assets.gen.dart';
 import '../../../shared/widgets/widgets.dart';
 import '../../home/models/submission_model.dart';
+import '../widgets/profile_menu_card.dart';
 import '../widgets/run_history_list_filter.dart';
 
 class RunHistoryDetailsScreen extends StatefulWidget {
