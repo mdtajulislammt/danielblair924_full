@@ -25,11 +25,12 @@ export default function ChallengeOverviewPage() {
     ])
       .then(([challengeRes, destRes]) => {
         if (challengeRes.status === "fulfilled" && challengeRes.value) {
-          const item = challengeRes.value?.data || (challengeRes.value as any);
+          const item = (challengeRes.value as any)?.data || challengeRes.value;
           if (item) setChallenge(item);
         }
         if (destRes.status === "fulfilled" && destRes.value) {
-          const list = destRes.value?.data || (destRes.value as any);
+          const res = destRes.value;
+          const list = Array.isArray(res) ? res : (res as any)?.data?.destinations ?? (res as any)?.destinations ?? [];
           if (Array.isArray(list)) setDestinations(list);
         }
       })

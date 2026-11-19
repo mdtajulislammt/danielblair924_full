@@ -1,5 +1,7 @@
 "use client";
 
+import { getErrorMessage } from "@/lib/apiResponse";
+
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
@@ -124,7 +126,7 @@ export const EditPost: React.FC<EditPostProps> = ({ postId, initialData }) => {
     } catch (err: any) {
       console.error("Failed to update post:", err);
       toast.error(
-        err?.response?.data?.message || err?.message || "Failed to update post."
+        getErrorMessage(err, "Failed to update post.")
       );
     }
   };

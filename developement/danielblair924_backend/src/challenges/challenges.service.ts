@@ -1,9 +1,11 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { CreateChallengeDto } from './dto/create-challenge.dto.js';
 import { UpdateChallengeDto } from './dto/update-challenge.dto.js';
 import { ChallengeQueryDto } from './dto/challenge-query.dto.js';
@@ -95,7 +97,12 @@ let customDestinations = [...STATIC_DESTINATIONS];
 
 @Injectable()
 export class ChallengesService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(ChallengesService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   public getDestinationsList() {
     return customDestinations;
@@ -195,6 +202,19 @@ export class ChallengesService {
         requirements: true,
       },
     });
+
+    if (challenge.status === ChallengeStatus.ACTIVE) {
+      void this.notifications
+        .notifyAllMembers(
+          'CHALLENGE_LAUNCHED',
+          `New challenge: ${challenge.title}`,
+          challenge.description ? challenge.description.slice(0, 100) : '',
+          { route: 'challenge', challengeId: challenge.id },
+        )
+        .catch((err) =>
+          this.logger.error(`Failed to notify members for challenge ${challenge.id}: ${err.message}`),
+        );
+    }
 
     return {
       status: 'success' as const,
@@ -487,6 +507,19 @@ export class ChallengesService {
       data,
       include: { requirements: true },
     });
+
+    if (existing.status !== ChallengeStatus.ACTIVE && updated.status === ChallengeStatus.ACTIVE) {
+      void this.notifications
+        .notifyAllMembers(
+          'CHALLENGE_LAUNCHED',
+          `New challenge: ${updated.title}`,
+          updated.description ? updated.description.slice(0, 100) : '',
+          { route: 'challenge', challengeId: updated.id },
+        )
+        .catch((err) =>
+          this.logger.error(`Failed to notify members for challenge ${updated.id}: ${err.message}`),
+        );
+    }
 
     return {
       status: 'success' as const,

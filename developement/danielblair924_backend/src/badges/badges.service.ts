@@ -10,6 +10,7 @@ import { CreateBadgeDto } from './dto/create-badge.dto.js';
 import { UpdateBadgeDto } from './dto/update-badge.dto.js';
 import { BadgeQueryDto } from './dto/badge-query.dto.js';
 import { BadgeTagType } from '../generated/prisma/enums.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 
 export interface FormattedBadge {
   id: string;
@@ -32,7 +33,10 @@ export interface FormattedBadge {
 
 @Injectable()
 export class BadgesService implements OnModuleInit {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   async onModuleInit() {
     await this.seedInitialBadges();
@@ -478,6 +482,16 @@ export class BadgesService implements OnModuleInit {
       where: { id: badge.id },
       data: { earnedCount: { increment: 1 } },
     });
+
+    void this.notifications
+      .notifyUser(
+        userId,
+        'BADGE_EARNED',
+        'New badge unlocked 🏅',
+        `Congratulations! You were awarded the "${badge.name}" badge.`,
+        { route: 'achievements', slug: badge.slug },
+      )
+      .catch((err) => console.error('Failed to notify user of awarded badge:', err));
 
     return {
       status: 'success' as const,

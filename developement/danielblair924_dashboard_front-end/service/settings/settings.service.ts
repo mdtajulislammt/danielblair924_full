@@ -1,4 +1,5 @@
 import { Fetch } from "../../lib/Fetch";
+import { unwrap } from "../../lib/apiResponse";
 
 export interface AdminAccountData {
   id?: string;
@@ -27,6 +28,7 @@ export interface AdminSession {
 
 export interface AdminSecurityData {
   enable2FA: boolean;
+  twoFactorAvailable?: boolean;
   sessions: AdminSession[];
 }
 
@@ -50,89 +52,16 @@ export const SettingsService = {
    * alert notification preferences, and active browser sessions.
    */
   getAdminSettings: async (): Promise<AdminSettingsResponse> => {
-    try {
-      const response = await Fetch.get("/admin/settings");
-      const resData = response?.data?.data ?? response?.data ?? response;
-      if (resData?.account) return resData;
-    } catch {
-      // Fallback
-    }
-
-    try {
-      // Try /user/me
-      const meRes = await Fetch.get("/user/me");
-      const user = meRes?.data?.data ?? meRes?.data ?? meRes;
-      const notifRes = await Fetch.get("/settings/notifications").catch(() => null);
-      const sessRes = await Fetch.get("/settings/sessions").catch(() => null);
-
-      const fullName = [user?.fname, user?.lname].filter(Boolean).join(" ") || user?.username || "Admin User";
-
-      return {
-        account: {
-          id: user?.id,
-          name: fullName,
-          email: user?.email || "admin@firstmileclub.com",
-          avatarUrl: user?.avatarUrl,
-          role: user?.role || "ADMIN",
-        },
-        notifications: notifRes?.data?.data ?? notifRes?.data ?? {
-          newSubmissionAlert: true,
-          newRegistrationAlert: true,
-          weeklySummaryEmail: false,
-          eventPublishedConfirmation: true,
-          badgeEarnedNotifications: false,
-        },
-        security: {
-          enable2FA: false,
-          sessions: sessRes?.data?.data ?? sessRes?.data ?? [
-            {
-              id: "session-current",
-              device: "Chrome / macOS (Active)",
-              location: "New York, USA",
-              isCurrent: true,
-            },
-          ],
-        },
-      };
-    } catch {
-      return {
-        account: {
-          name: "Admin User",
-          email: "admin@firstmileclub.com",
-        },
-        notifications: {
-          newSubmissionAlert: true,
-          newRegistrationAlert: true,
-          weeklySummaryEmail: false,
-          eventPublishedConfirmation: true,
-          badgeEarnedNotifications: false,
-        },
-        security: {
-          enable2FA: false,
-          sessions: [
-            {
-              id: "session-default",
-              device: "Chrome / Desktop (Active)",
-              location: "Local Network",
-              isCurrent: true,
-            },
-          ],
-        },
-      };
-    }
+    const response = await Fetch.get("/admin/settings");
+    return unwrap<AdminSettingsResponse>(response);
   },
 
   /**
    * Update admin account details and password.
    */
   updateAdminAccount: async (payload: UpdateAdminAccountPayload): Promise<any> => {
-    try {
-      const response = await Fetch.patch("/admin/settings/account", payload);
-      return response?.data?.data ?? response?.data ?? response;
-    } catch {
-      const response = await Fetch.patch("/user/profile", payload);
-      return response?.data?.data ?? response?.data ?? response;
-    }
+    const response = await Fetch.patch("/admin/settings/account", payload);
+    return unwrap(response);
   },
 
   /**
@@ -141,52 +70,33 @@ export const SettingsService = {
   updateNotifications: async (
     payload: Partial<AdminNotificationsData>
   ): Promise<any> => {
-    try {
-      const response = await Fetch.patch("/admin/settings/notifications", payload);
-      return response?.data?.data ?? response?.data ?? response;
-    } catch {
-      const response = await Fetch.patch("/settings/notifications", payload);
-      return response?.data?.data ?? response?.data ?? response;
-    }
+    const response = await Fetch.patch("/admin/settings/notifications", payload);
+    return unwrap(response);
   },
 
   /**
    * Get list of active browser sessions.
    */
   getActiveSessions: async (): Promise<AdminSession[]> => {
-    try {
-      const response = await Fetch.get("/admin/settings/sessions");
-      const resData = response?.data?.data ?? response?.data ?? response;
-      if (Array.isArray(resData?.data)) return resData.data;
-      if (Array.isArray(resData)) return resData;
-    } catch {
-      const response = await Fetch.get("/settings/sessions").catch(() => null);
-      const resData = response?.data?.data ?? response?.data ?? response;
-      if (Array.isArray(resData?.data)) return resData.data;
-      if (Array.isArray(resData)) return resData;
-    }
-
-    return [
-      {
-        id: "session-active-1",
-        device: "Chrome on macOS",
-        location: "Current Device",
-        isCurrent: true,
-      },
-    ];
+    const response = await Fetch.get("/admin/settings/sessions");
+    const data = unwrap<AdminSession[]>(response);
+    return Array.isArray(data) ? data : [];
   },
 
   /**
    * Revoke an active session.
    */
   revokeSession: async (sessionId: string): Promise<any> => {
-    try {
-      const response = await Fetch.delete(`/admin/settings/sessions/${sessionId}`);
-      return response?.data?.data ?? response?.data ?? response;
-    } catch {
-      const response = await Fetch.delete(`/settings/sessions/${sessionId}`);
-      return response?.data?.data ?? response?.data ?? response;
-    }
+    const response = await Fetch.delete(`/admin/settings/sessions/${sessionId}`);
+    return unwrap(response);
+  },
+
+  /**
+   * Revoke all other sessions.
+   */
+  revokeOtherSessions: async (): Promise<any> => {
+    const response = await Fetch.delete("/admin/settings/sessions");
+    return unwrap(response);
   },
 };
 

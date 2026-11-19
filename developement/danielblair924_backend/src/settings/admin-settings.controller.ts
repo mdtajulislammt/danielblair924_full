@@ -26,8 +26,11 @@ export class AdminSettingsController {
    * Retrieve admin profile, notification toggles, and security sessions.
    */
   @Get()
-  async getSettings(@CurrentUser('id') userId: string) {
-    return this.settingsService.getAdminSettings(userId);
+  async getSettings(
+    @CurrentUser('id') userId: string,
+    @CurrentUser('sid') sid?: string,
+  ) {
+    return this.settingsService.getAdminSettings(userId, sid);
   }
 
   /**
@@ -37,9 +40,10 @@ export class AdminSettingsController {
   @Patch('account')
   async updateAccount(
     @CurrentUser('id') userId: string,
+    @CurrentUser('sid') sid: string | undefined,
     @Body() dto: UpdateAdminAccountDto,
   ) {
-    return this.settingsService.updateAdminAccount(userId, dto);
+    return this.settingsService.updateAdminAccount(userId, dto, sid);
   }
 
   /**
@@ -59,8 +63,23 @@ export class AdminSettingsController {
    * List active logged-in browser device sessions.
    */
   @Get('sessions')
-  async getSessions(@CurrentUser('id') userId: string) {
-    return this.settingsService.getActiveSessions(userId);
+  async getSessions(
+    @CurrentUser('id') userId: string,
+    @CurrentUser('sid') sid?: string,
+  ) {
+    return this.settingsService.getActiveSessions(userId, sid);
+  }
+
+  /**
+   * DELETE /api/admin/settings/sessions
+   * Revoke all other sessions except current.
+   */
+  @Delete('sessions')
+  async revokeOtherSessions(
+    @CurrentUser('id') userId: string,
+    @CurrentUser('sid') sid?: string,
+  ) {
+    return this.settingsService.deleteOtherSessions(userId, sid);
   }
 
   /**
@@ -70,9 +89,10 @@ export class AdminSettingsController {
   @Delete('sessions/:id')
   async revokeSession(
     @CurrentUser('id') userId: string,
+    @CurrentUser('sid') sid: string | undefined,
     @Param('id') sessionId: string,
   ) {
-    return this.settingsService.revokeSession(userId, sessionId);
+    return this.settingsService.revokeSession(userId, sessionId, sid);
   }
 }
 

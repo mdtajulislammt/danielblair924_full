@@ -90,7 +90,7 @@ export default function ChallengeDestinationsTable() {
     setIsLoading(true);
     ChallengeService.getDestinations(challengeId)
       .then((res) => {
-        const list = res?.data || (res as any);
+        const list = Array.isArray(res) ? res : (res as any)?.data?.destinations ?? (res as any)?.destinations ?? [];
         if (Array.isArray(list) && list.length > 0) {
           const adapted: DestinationRequirement[] = list.map((item: MilestoneDestination) => ({
             id: item.id,

@@ -1,4 +1,6 @@
 "use client";
+
+import { getErrorMessage } from "@/lib/apiResponse";
 import DynamicTable from "@/components/reusable/DynamicTable";
 import Image from "next/image";
 import Link from "next/link";
@@ -50,7 +52,7 @@ function SubmissionPage() {
       setData(items);
     } catch (err: any) {
       console.error("Failed to fetch submissions:", err);
-      setError(err?.response?.data?.message || err?.message || "Failed to load submissions");
+      setError(getErrorMessage(err, "Failed to load submissions"));
     } finally {
       setLoading(false);
     }
@@ -71,7 +73,7 @@ function SubmissionPage() {
         fetchSubmissions();
       }
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || "Failed to approve submission";
+      const msg = getErrorMessage(err, "Failed to approve submission");
       toast.error(msg);
     }
   };

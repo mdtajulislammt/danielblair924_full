@@ -43,8 +43,23 @@ export class SettingsController {
    * List active sessions for the current authenticated user.
    */
   @Get('sessions')
-  async getSessions(@CurrentUser('id') userId: string) {
-    return this.settingsService.getActiveSessions(userId);
+  async getSessions(
+    @CurrentUser('id') userId: string,
+    @CurrentUser('sid') sid?: string,
+  ) {
+    return this.settingsService.getActiveSessions(userId, sid);
+  }
+
+  /**
+   * DELETE /api/settings/sessions
+   * Revoke all other active sessions except current.
+   */
+  @Delete('sessions')
+  async revokeOtherSessions(
+    @CurrentUser('id') userId: string,
+    @CurrentUser('sid') sid?: string,
+  ) {
+    return this.settingsService.deleteOtherSessions(userId, sid);
   }
 
   /**
@@ -54,9 +69,10 @@ export class SettingsController {
   @Delete('sessions/:id')
   async revokeSession(
     @CurrentUser('id') userId: string,
+    @CurrentUser('sid') sid: string | undefined,
     @Param('id') sessionId: string,
   ) {
-    return this.settingsService.revokeSession(userId, sessionId);
+    return this.settingsService.revokeSession(userId, sessionId, sid);
   }
 }
 

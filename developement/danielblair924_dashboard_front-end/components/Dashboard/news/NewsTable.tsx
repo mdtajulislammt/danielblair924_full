@@ -1,5 +1,7 @@
 "use client";
 
+import { getErrorMessage } from "@/lib/apiResponse";
+
 import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -90,7 +92,7 @@ export default function NewsTable({ searchParams }: NewsTableProps) {
       toast.success("News article deleted successfully.");
     } catch (err: any) {
       console.error("Failed to delete post:", err);
-      toast.error(err?.response?.data?.message || "Failed to delete article.");
+      toast.error(getErrorMessage(err, "Failed to delete article."));
     }
   };
 

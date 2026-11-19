@@ -14,10 +14,14 @@ import {
   ActivityType,
   SubmissionStatus,
 } from '../generated/prisma/client.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 
 @Injectable()
 export class SubmissionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   // ---------------------------------------------------------------------------
   // HELPERS: Pace, Date, and Label Formatting
@@ -250,8 +254,23 @@ export class SubmissionsService {
       include: {
         event: { select: { id: true, title: true } },
         challenge: { select: { id: true, title: true } },
+        user: { select: { fname: true, lname: true, username: true, email: true } },
       },
     });
+
+    const memberName =
+      updated.user?.fname || updated.user?.lname
+        ? `${updated.user?.fname || ''} ${updated.user?.lname || ''}`.trim()
+        : updated.user?.username || updated.user?.email || 'A member';
+
+    void this.notifications
+      .notifyAdmins(
+        'SUBMISSION_NEW',
+        'New run submission',
+        `${memberName} submitted ${updated.distanceKm} km for review`,
+        { route: `/dashboard/submissions/${updated.id}` },
+      )
+      .catch((err) => console.error('Failed to notify admins of submission:', err));
 
     return {
       status: 'success' as const,
@@ -768,6 +787,33 @@ export class SubmissionsService {
       Boolean(submission.challengeId),
     );
 
+    // Notify runner of approved submission
+    const eventOrChallengeTitle = submission.event?.title || submission.challenge?.title || 'Open Run';
+    void this.notifications
+      .notifyUser(
+        submission.userId,
+        'SUBMISSION_APPROVED',
+        'Run approved ✅',
+        `${submission.distanceKm.toFixed(1)} km for ${eventOrChallengeTitle} was approved`,
+        { route: 'run_history', submissionId: submission.id },
+      )
+      .catch((err) => console.error('Failed to send SUBMISSION_APPROVED notification:', err));
+
+    // Notify runner of any newly unlocked badges
+    if (unlockedBadges && unlockedBadges.length > 0) {
+      for (const badge of unlockedBadges) {
+        void this.notifications
+          .notifyUser(
+            submission.userId,
+            'BADGE_EARNED',
+            'New badge unlocked 🏅',
+            `Congratulations! You earned the "${badge.name}" badge.`,
+            { route: 'achievements', slug: badge.slug },
+          )
+          .catch((err) => console.error('Failed to send BADGE_EARNED notification:', err));
+      }
+    }
+
     return {
       status: 'success' as const,
       data: {
@@ -838,6 +884,16 @@ export class SubmissionsService {
         },
       });
     });
+
+    void this.notifications
+      .notifyUser(
+        submission.userId,
+        'SUBMISSION_REJECTED',
+        'Submission rejected',
+        dto.reason || 'Your run submission was rejected by the administrator.',
+        { route: 'run_history', submissionId: updated.id },
+      )
+      .catch((err) => console.error('Failed to send SUBMISSION_REJECTED notification:', err));
 
     return {
       status: 'success' as const,

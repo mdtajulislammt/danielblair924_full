@@ -11,6 +11,7 @@ import { BadgesModule } from './badges/badges.module.js';
 import { NewsModule } from './news/news.module.js';
 import { SettingsModule } from './settings/settings.module.js';
 import { StravaModule } from './strava/strava.module.js';
+import { NotificationsModule } from './notifications/notifications.module.js';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { StravaModule } from './strava/strava.module.js';
     NewsModule,
     SettingsModule,
     StravaModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

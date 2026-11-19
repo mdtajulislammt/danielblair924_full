@@ -1,5 +1,7 @@
 "use client";
 
+import { getErrorMessage } from "@/lib/apiResponse";
+
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
@@ -73,7 +75,7 @@ export const CreatePost: React.FC = () => {
     } catch (err: any) {
       console.error("Failed to submit news post:", err);
       toast.error(
-        err?.response?.data?.message || err?.message || "Failed to create news post."
+        getErrorMessage(err, "Failed to create news post.")
       );
     }
   };

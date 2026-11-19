@@ -49,7 +49,7 @@ export default function EventDetailsForm() {
       setIsLoadingExisting(true);
       EventService.getEventById(eventId)
         .then((res) => {
-          const evt = res?.data || (res as any);
+          const evt = (res as any)?.data || res;
           if (evt) {
             setValue("eventName", evt.title || evt.eventName || "");
             setValue("description", evt.description || "");

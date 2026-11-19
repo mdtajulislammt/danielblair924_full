@@ -1,27 +1,28 @@
 import { useEffect, useState } from "react";
 import { UserService } from "../service/user/user.service";
+import { CookieHelper } from "../helper/cookie.helper";
+import { unwrap } from "../lib/apiResponse";
 
 /**
  * Return user details from server use in component
  * @returns
  */
 export function useUser(context = null) {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any>(null);
 
-  const getUser = async () => {
-    const res = await UserService.getUserDetails(context);
-    let userData = null;
-
-    if (res.data.status == "success") {
-      userData = await res.data.data;
-    } else {
-      userData = null;
+  const getUserDetails = async () => {
+    try {
+      const token = CookieHelper.get({ key: "token", context }) || "";
+      const res = await UserService.getUserDetails({ token, context });
+      const userData = unwrap(res);
+      setUser(userData || null);
+    } catch {
+      setUser(null);
     }
-    setUser(userData);
   };
 
   useEffect(() => {
-    getUser();
+    getUserDetails();
   }, []);
 
   return user;
@@ -32,18 +33,11 @@ export function useUser(context = null) {
  * @returns
  */
 export async function getUser(context = null) {
-  let userData = null;
   try {
-    const res = await UserService.getUserDetails(context);
-
-    if (res.data.error) {
-      userData = null;
-    } else {
-      userData = res.data.data;
-    }
-  } catch (error) {
-    userData = null;
+    const token = CookieHelper.get({ key: "token", context }) || "";
+    const res = await UserService.getUserDetails({ token, context });
+    return unwrap(res) || null;
+  } catch {
+    return null;
   }
-
-  return userData;
 }

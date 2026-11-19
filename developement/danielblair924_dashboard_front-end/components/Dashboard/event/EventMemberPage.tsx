@@ -35,7 +35,7 @@ export default function EventMemberPage() {
     ])
       .then(([partsRes, eventRes]) => {
         if (eventRes.status === "fulfilled" && eventRes.value) {
-          const evt = eventRes.value?.data || (eventRes.value as any);
+          const evt = (eventRes.value as any)?.data || eventRes.value;
           if (evt) {
             setEventTitle(evt.title || evt.eventName || "Event Details");
             if (evt.coverImageUrl) setEventCoverUrl(evt.coverImageUrl);
@@ -44,7 +44,8 @@ export default function EventMemberPage() {
         }
 
         if (partsRes.status === "fulfilled" && partsRes.value) {
-          const data = partsRes.value?.data;
+          const v: any = partsRes.value;
+          const data = v?.participants ? v : v?.data;
           const evtInfo = data?.event as any;
           if (evtInfo?.title && !eventTitle) {
             setEventTitle(`${evtInfo.title} - Participants`);

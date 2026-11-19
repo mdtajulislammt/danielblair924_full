@@ -1,5 +1,7 @@
 "use client";
 
+import { getErrorMessage } from "@/lib/apiResponse";
+
 import React, { useEffect, useState, useCallback } from "react";
 import { BadgeItem, BadgeService } from "@/service/badge/badge.service";
 import { BadgeCard } from "./BadgeCard";
@@ -48,7 +50,7 @@ export const Badges: React.FC<BadgesGridProps> = ({ initialBadges }) => {
       toast.success("Badge deleted successfully.");
     } catch (err: any) {
       console.error("Failed to delete badge:", err);
-      toast.error(err?.response?.data?.message || "Failed to delete badge.");
+      toast.error(getErrorMessage(err, "Failed to delete badge."));
     }
   };
 

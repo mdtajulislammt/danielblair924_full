@@ -1,5 +1,7 @@
 "use client";
 
+import { getErrorMessage } from "@/lib/apiResponse";
+
 import DashboardSmallCardWrapper from "@/components/reusable/DashboardSmallCardWrapper";
 import Loader from "@/components/reusable/Loader";
 import { MemberService } from "@/service/member/member.service";
@@ -53,9 +55,7 @@ export default function UserProfileSidebar({
       setUser((prev: any) => ({ ...prev, status: nextStatus }));
     } catch (err: any) {
       const msg =
-        err?.response?.data?.message ||
-        err?.message ||
-        "Failed to update status";
+        getErrorMessage(err, "Failed to update status");
       toast.error(msg);
     } finally {
       setActionLoading(false);

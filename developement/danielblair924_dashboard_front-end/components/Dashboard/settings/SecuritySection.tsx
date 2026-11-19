@@ -3,8 +3,9 @@
 import { Toggle } from "@/components/reusable/Toggle";
 import React, { useState, useEffect } from "react";
 import { AdminSession, SettingsService } from "@/service/settings/settings.service";
+import { getErrorMessage } from "@/lib/apiResponse";
 import { toast } from "react-toastify";
-import { Laptop, Smartphone, Monitor } from "lucide-react";
+import { Smartphone, Monitor } from "lucide-react";
 
 interface Session {
   id: string;
@@ -38,6 +39,8 @@ export const SecuritySection: React.FC<SecuritySectionProps> = ({
               isCurrent: Boolean(s.isCurrent),
             }))
           );
+        } else {
+          setSessions([]);
         }
       })
       .catch((err) => {
@@ -55,7 +58,7 @@ export const SecuritySection: React.FC<SecuritySectionProps> = ({
       toast.success("Session revoked successfully.");
     } catch (err: any) {
       console.error("Failed to revoke session:", err);
-      toast.error(err?.response?.data?.message || "Failed to revoke session.");
+      toast.error(getErrorMessage(err, "Failed to revoke session."));
     }
   };
 
@@ -67,12 +70,12 @@ export const SecuritySection: React.FC<SecuritySectionProps> = ({
     }
 
     try {
-      await Promise.all(toRevoke.map((s) => SettingsService.revokeSession(s.id)));
+      await SettingsService.revokeOtherSessions();
       setSessions((prev) => prev.filter((s) => s.isCurrent));
       toast.success("All other sessions logged out.");
     } catch (err: any) {
       console.error("Failed to revoke sessions:", err);
-      toast.error("Failed to log out all devices.");
+      toast.error(getErrorMessage(err, "Failed to log out all devices."));
     }
   };
 
@@ -81,18 +84,23 @@ export const SecuritySection: React.FC<SecuritySectionProps> = ({
       {/* 2FA Toggle Card */}
       <div className="p-6 bg-radial-[at_97%_0%] from-lime-900 to-stone-950 rounded-xl outline-1 outline-offset-[-1px] outline-lime-800 flex items-center justify-between">
         <div>
-          <h2 className="text-whiteColor text-base font-bold leading-5">
-            Enable 2FA
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-whiteColor text-base font-bold leading-5">
+              Enable 2FA
+            </h2>
+            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-stone-800 text-stone-400">
+              Coming soon
+            </span>
+          </div>
           <p className="text-stone-400 text-xs font-normal leading-4 mt-1">
             Two-factor authentication via authenticator app
           </p>
         </div>
         <Toggle
-          checked={enable2FA}
-          onChange={(val) => {
-            setEnable2FA(val);
-            toast.info(`Two-factor authentication ${val ? "enabled" : "disabled"}.`);
+          checked={false}
+          disabled={true}
+          onChange={() => {
+            toast.info("Two-factor authentication is coming soon.");
           }}
         />
       </div>
@@ -173,7 +181,7 @@ export const SecuritySection: React.FC<SecuritySectionProps> = ({
             onClick={handleLogoutAll}
             className="px-4 py-2 border border-red-900/80 bg-red-950/30 hover:bg-red-900/40 text-red-400 text-xs font-bold rounded-lg transition-colors cursor-pointer"
           >
-            Log out all devices
+            Log out all other devices
           </button>
         </div>
       </div>

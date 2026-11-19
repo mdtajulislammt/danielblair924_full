@@ -1,5 +1,7 @@
 "use client";
 
+import { getErrorMessage } from "@/lib/apiResponse";
+
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
@@ -132,7 +134,7 @@ export const CreateBadges: React.FC<BadgeFormProps> = ({
     } catch (err: any) {
       console.error("Failed to save badge:", err);
       toast.error(
-        err?.response?.data?.message || err?.message || "Failed to save badge."
+        getErrorMessage(err, "Failed to save badge.")
       );
     }
   };

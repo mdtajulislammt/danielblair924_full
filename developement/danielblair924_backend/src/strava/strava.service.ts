@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 
 export interface StravaTokenResponse {
   token_type: string;
@@ -47,7 +48,10 @@ export class StravaService {
     process.env.STRAVA_WEBHOOK_VERIFY_TOKEN ||
     'fmc_strava_webhook_verification_token_2026';
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   /**
    * Generates official Strava OAuth authorization URL.
@@ -440,6 +444,17 @@ export class StravaService {
       this.logger.log(
         `Successfully auto-synced Strava run: ${distanceKm} km for runner ${user.email} (Submission ${result.id})`,
       );
+
+      // Notify runner of auto-synced run
+      void this.notifications
+        .notifyUser(
+          user.id,
+          'STRAVA_RUN_SYNCED',
+          'Strava activity synced ⚡',
+          `Your ${distanceKm} km Strava run was automatically synced and approved!`,
+          { route: 'run_history', submissionId: result.id },
+        )
+        .catch((err) => this.logger.error(`Failed to send STRAVA_RUN_SYNCED notification: ${err?.message}`));
 
       return {
         status: 'synced',

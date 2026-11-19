@@ -1,4 +1,5 @@
 import { Fetch } from "../../lib/Fetch";
+import { unwrap } from "../../lib/apiResponse";
 
 export interface SubmissionItem {
   id: string;
@@ -41,7 +42,7 @@ export const SubmissionService = {
 
     const url = `/admin/submissions${query.toString() ? `?${query.toString()}` : ""}`;
     const response = await Fetch.get(url);
-    return response?.data?.data ?? response?.data ?? response;
+    return unwrap(response);
   },
 
   /**
@@ -49,7 +50,7 @@ export const SubmissionService = {
    */
   getSubmissionById: async (id: string): Promise<SubmissionItem> => {
     const response = await Fetch.get(`/admin/submissions/${id}`);
-    return response?.data?.data ?? response?.data ?? response;
+    return unwrap(response);
   },
 
   /**
@@ -61,13 +62,12 @@ export const SubmissionService = {
   ) => {
     if (payload.status === "APPROVED") {
       const response = await Fetch.patch(`/admin/submissions/${id}/approve`, {});
-      return response?.data?.data ?? response?.data ?? response;
+      return unwrap(response);
     } else {
       const response = await Fetch.patch(`/admin/submissions/${id}/reject`, {
         reason: payload.rejectionReason || "Submission rejected by admin",
       });
-      return response?.data?.data ?? response?.data ?? response;
+      return unwrap(response);
     }
   },
 };
-

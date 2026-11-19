@@ -1,4 +1,5 @@
 import { Fetch } from "../../lib/Fetch";
+import { unwrap } from "../../lib/apiResponse";
 
 export interface MemberItem {
   id: string;
@@ -59,7 +60,7 @@ export const MemberService = {
 
     const url = `/admin/members${query.toString() ? `?${query.toString()}` : ""}`;
     const response = await Fetch.get(url);
-    return response?.data?.data ?? response?.data ?? response;
+    return unwrap(response);
   },
 
   /**
@@ -67,7 +68,7 @@ export const MemberService = {
    */
   getMemberById: async (id: string): Promise<MemberItem> => {
     const response = await Fetch.get(`/admin/members/${id}`);
-    return response?.data?.data ?? response?.data ?? response;
+    return unwrap(response);
   },
 
   /**
@@ -75,7 +76,7 @@ export const MemberService = {
    */
   getMemberBadges: async (id: string) => {
     const response = await Fetch.get(`/admin/members/${id}/badges`);
-    return response?.data?.data ?? response?.data ?? response;
+    return unwrap(response);
   },
 
   /**
@@ -94,7 +95,7 @@ export const MemberService = {
       query.toString() ? `?${query.toString()}` : ""
     }`;
     const response = await Fetch.get(url);
-    return response?.data?.data ?? response?.data ?? response;
+    return unwrap(response);
   },
 
   /**
@@ -105,7 +106,7 @@ export const MemberService = {
     status: "ACTIVE" | "INACTIVE" | "SUSPENDED"
   ) => {
     const response = await Fetch.patch(`/admin/members/${id}/status`, { status });
-    return response?.data?.data ?? response?.data ?? response;
+    return unwrap(response);
   },
 
   /**
@@ -113,6 +114,6 @@ export const MemberService = {
    */
   deleteMember: async (id: string) => {
     const response = await Fetch.delete(`/admin/members/${id}`);
-    return response?.data?.data ?? response?.data ?? response;
+    return unwrap(response);
   },
 };

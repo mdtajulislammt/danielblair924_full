@@ -1,6 +1,7 @@
 import { Fetch } from "../../lib/Fetch";
 import { AppConfig } from "../../config/app.config";
 import { EventRequirements } from "./event.service";
+import { unwrap } from "../../lib/apiResponse";
 
 export interface ChallengeItem {
   id: string;
@@ -85,26 +86,27 @@ export const ChallengeService = {
 
     const qs = query.toString() ? `?${query.toString()}` : "";
     const response = await Fetch.get(`/admin/challenges${qs}`);
-    return response?.data?.data ?? response?.data ?? response;
+    return unwrap(response);
   },
 
   /**
    * Get single challenge by ID
    */
-  getChallengeById: async (id: string): Promise<{ status: string; data: ChallengeItem }> => {
+  getChallengeById: async (id: string): Promise<ChallengeItem> => {
     const response = await Fetch.get(`/admin/challenges/${id}`);
-    return response?.data?.data ?? response?.data ?? response;
+    return unwrap(response);
   },
 
   /**
    * Get RATW milestones & destinations for challenge
    */
-  getDestinations: async (challengeId?: string): Promise<{ status: string; data: MilestoneDestination[] }> => {
+  getDestinations: async (challengeId?: string): Promise<MilestoneDestination[]> => {
     const url = challengeId
       ? `/admin/challenges/${challengeId}/destinations`
       : `/challenges/ratw/destinations`;
     const response = await Fetch.get(url);
-    return response?.data?.data ?? response?.data ?? response;
+    const d = unwrap<any>(response);
+    return Array.isArray(d) ? d : (d?.destinations ?? []);
   },
 
   /**
@@ -114,18 +116,15 @@ export const ChallengeService = {
     challengeId: string,
     params?: { page?: number; limit?: number }
   ): Promise<{
-    status: string;
-    data: {
-      challenge: {
-        id: string;
-        title: string;
-        currentProgress: number;
-        targetProgress: number;
-        progressUnit: string;
-      };
-      participants: ChallengeParticipant[];
-      pagination: { total: number; page: number; limit: number; totalPages: number };
+    challenge: {
+      id: string;
+      title: string;
+      currentProgress: number;
+      targetProgress: number;
+      progressUnit: string;
     };
+    participants: ChallengeParticipant[];
+    pagination: { total: number; page: number; limit: number; totalPages: number };
   }> => {
     const query = new URLSearchParams();
     if (params?.page) query.append("page", String(params.page));
@@ -133,7 +132,7 @@ export const ChallengeService = {
 
     const qs = query.toString() ? `?${query.toString()}` : "";
     const response = await Fetch.get(`/admin/challenges/${challengeId}/participants${qs}`);
-    return response?.data?.data ?? response?.data ?? response;
+    return unwrap(response);
   },
 
   /**
@@ -141,7 +140,7 @@ export const ChallengeService = {
    */
   createChallenge: async (payload: CreateChallengePayload) => {
     const response = await Fetch.post("/admin/challenges", payload);
-    return response?.data?.data ?? response?.data ?? response;
+    return unwrap(response);
   },
 
   /**
@@ -149,7 +148,7 @@ export const ChallengeService = {
    */
   updateChallenge: async (id: string, payload: Partial<CreateChallengePayload>) => {
     const response = await Fetch.patch(`/admin/challenges/${id}`, payload);
-    return response?.data?.data ?? response?.data ?? response;
+    return unwrap(response);
   },
 
   /**
@@ -157,7 +156,7 @@ export const ChallengeService = {
    */
   deleteChallenge: async (id: string) => {
     const response = await Fetch.delete(`/admin/challenges/${id}`);
-    return response?.data?.data ?? response?.data ?? response;
+    return unwrap(response);
   },
 
   /**
@@ -181,4 +180,3 @@ export const ChallengeService = {
     }
   },
 };
-

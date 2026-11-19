@@ -1,5 +1,7 @@
 "use client";
 
+import { getErrorMessage } from "@/lib/apiResponse";
+
 import RootDialog from "@/components/reusable/RootDialog";
 import { useState } from "react";
 import { toast } from "react-toastify";
@@ -51,9 +53,7 @@ function SubmissionModal({
       }
     } catch (err: any) {
       const msg =
-        err?.response?.data?.message ||
-        err?.message ||
-        "Failed to reject submission";
+        getErrorMessage(err, "Failed to reject submission");
       toast.error(msg);
     } finally {
       setSubmitting(false);

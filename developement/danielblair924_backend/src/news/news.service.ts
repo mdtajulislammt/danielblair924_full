@@ -1,12 +1,18 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { MediaService, UploadedFile } from './media.service.js';
 import { CreateNewsDto } from './dto/create-news.dto.js';
 import { UpdateNewsDto } from './dto/update-news.dto.js';
 import { NewsQueryDto } from './dto/news-query.dto.js';
+
+export function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>?/gm, '').trim();
+}
 
 export function formatNewsDate(date: Date): string {
   const months = [
@@ -31,9 +37,12 @@ export function formatNewsDate(date: Date): string {
 
 @Injectable()
 export class NewsService {
+  private readonly logger = new Logger(NewsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly mediaService: MediaService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /**
@@ -214,6 +223,19 @@ export class NewsService {
       },
     });
 
+    if (post.status === 'PUBLISHED' && new Date(post.publishDate) <= new Date()) {
+      const summary = stripHtml(post.body).slice(0, 100);
+      void this.notifications
+        .notifyAllMembers('NEWS_PUBLISHED', post.title, summary, {
+          route: 'news',
+          newsId: post.id,
+        })
+        .catch((err) =>
+          this.logger.error(`Failed to notify members for news ${post.id}: ${err.message}`),
+        );
+    }
+    // TODO: For future-dated posts (publishDate > now), run a cron job to transition & dispatch notifications.
+
     return this.formatPost(post);
   }
 
@@ -276,6 +298,23 @@ export class NewsService {
         },
       },
     });
+
+    if (
+      existing.status !== 'PUBLISHED' &&
+      updated.status === 'PUBLISHED' &&
+      new Date(updated.publishDate) <= new Date()
+    ) {
+      const summary = stripHtml(updated.body).slice(0, 100);
+      void this.notifications
+        .notifyAllMembers('NEWS_PUBLISHED', updated.title, summary, {
+          route: 'news',
+          newsId: updated.id,
+        })
+        .catch((err) =>
+          this.logger.error(`Failed to notify members for news ${updated.id}: ${err.message}`),
+        );
+    }
+    // TODO: For future-dated posts (publishDate > now), run a cron job to transition & dispatch notifications.
 
     return this.formatPost(updated);
   }

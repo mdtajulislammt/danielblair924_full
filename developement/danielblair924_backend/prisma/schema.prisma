@@ -64,6 +64,19 @@ enum BadgeTagType {
   SPECIAL
 }
 
+enum NotificationType {
+  SUBMISSION_APPROVED
+  SUBMISSION_REJECTED
+  SUBMISSION_NEW
+  STRAVA_RUN_SYNCED
+  BADGE_EARNED
+  EVENT_PUBLISHED
+  CHALLENGE_LAUNCHED
+  NEWS_PUBLISHED
+  MEMBER_REGISTERED
+  SYSTEM
+}
+
 // ----------------------------------------------------
 // MODELS
 // ----------------------------------------------------
@@ -108,6 +121,8 @@ model User {
   challengeEntries     ChallengeParticipant[]
   eventEntries         EventParticipant[]
   sessions             UserSession[]
+  notifications        Notification[]
+  deviceTokens         DeviceToken[]
   notificationSettings NotificationSettings?
   newsPosts            NewsPost[]             @relation("AuthorNews")
 
@@ -331,7 +346,7 @@ model NewsPost {
   @@map("news_posts")
 }
 
-/// Admin notification preferences.
+/// Admin notification preferences & member push preferences.
 model NotificationSettings {
   id                         String  @id @default(uuid())
   userId                     String  @unique @map("user_id")
@@ -339,7 +354,14 @@ model NotificationSettings {
   newRegistrationAlert       Boolean @default(true) @map("new_registration_alert")
   weeklySummaryEmail         Boolean @default(false) @map("weekly_summary_email")
   eventPublishedConfirmation Boolean @default(true) @map("event_published_confirmation")
-  badgeEarnedNotifications   Boolean @default(false) @map("badge_earned_notifications")
+  badgeEarnedNotifications   Boolean @default(true) @map("badge_earned_notifications")
+
+  // Member push preferences
+  pushEnabled                Boolean @default(true) @map("push_enabled")
+  submissionUpdates          Boolean @default(true) @map("submission_updates")
+  newEvents                  Boolean @default(true) @map("new_events")
+  newChallenges              Boolean @default(true) @map("new_challenges")
+  newsUpdates                Boolean @default(true) @map("news_updates")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -347,6 +369,39 @@ model NotificationSettings {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("notification_settings")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  type      NotificationType
+  title     String
+  body      String
+  data      Json?
+  isRead    Boolean          @default(false) @map("is_read")
+  readAt    DateTime?        @map("read_at")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+model DeviceToken {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  token      String   @unique
+  platform   String
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  lastSeenAt DateTime @default(now()) @map("last_seen_at")
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("device_tokens")
 }
 
 /// Active security sessions for monitoring and revocation.

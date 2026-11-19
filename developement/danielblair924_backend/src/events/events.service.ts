@@ -2,9 +2,11 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { CreateEventDto } from './dto/create-event.dto.js';
 import { UpdateEventDto } from './dto/update-event.dto.js';
 import { EventQueryDto } from './dto/event-query.dto.js';
@@ -12,7 +14,12 @@ import { EventStatus, Prisma } from '../generated/prisma/client.js';
 
 @Injectable()
 export class EventsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(EventsService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   async createEvent(dto: CreateEventDto) {
     const title = dto.title || dto.eventName;
@@ -77,6 +84,29 @@ export class EventsService {
         requirements: true,
       },
     });
+
+    if (event.status === EventStatus.PUBLISHED) {
+      void this.notifications
+        .notifyAllMembers(
+          'EVENT_PUBLISHED',
+          `New event: ${event.title}`,
+          event.description ? event.description.slice(0, 100) : '',
+          { route: 'events', eventId: event.id },
+        )
+        .catch((err) =>
+          this.logger.error(`Failed to notify members for event ${event.id}: ${err.message}`),
+        );
+      void this.notifications
+        .notifyAdmins(
+          'EVENT_PUBLISHED',
+          'Event published',
+          `Event "${event.title}" is now published.`,
+          { route: `/dashboard/events/${event.id}` },
+        )
+        .catch((err) =>
+          this.logger.error(`Failed to notify admins for event ${event.id}: ${err.message}`),
+        );
+    }
 
     return {
       status: 'success' as const,
@@ -310,6 +340,29 @@ export class EventsService {
       data,
       include: { requirements: true },
     });
+
+    if (existing.status !== EventStatus.PUBLISHED && updated.status === EventStatus.PUBLISHED) {
+      void this.notifications
+        .notifyAllMembers(
+          'EVENT_PUBLISHED',
+          `New event: ${updated.title}`,
+          updated.description ? updated.description.slice(0, 100) : '',
+          { route: 'events', eventId: updated.id },
+        )
+        .catch((err) =>
+          this.logger.error(`Failed to notify members for event ${updated.id}: ${err.message}`),
+        );
+      void this.notifications
+        .notifyAdmins(
+          'EVENT_PUBLISHED',
+          'Event published',
+          `Event "${updated.title}" is now published.`,
+          { route: `/dashboard/events/${updated.id}` },
+        )
+        .catch((err) =>
+          this.logger.error(`Failed to notify admins for event ${updated.id}: ${err.message}`),
+        );
+    }
 
     return {
       status: 'success' as const,

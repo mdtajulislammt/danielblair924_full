@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AdminAccountFormData, adminAccountSchema } from "./schemas";
 import { SettingsService } from "@/service/settings/settings.service";
+import { getErrorMessage } from "@/lib/apiResponse";
 import { toast } from "react-toastify";
 
 interface AdminAccountSectionProps {
@@ -67,9 +68,7 @@ export const AdminAccountSection: React.FC<AdminAccountSectionProps> = ({
       setValue("confirmNewPassword", "");
     } catch (err: any) {
       console.error("Failed to update admin account:", err);
-      toast.error(
-        err?.response?.data?.message || err?.message || "Failed to update account settings."
-      );
+      toast.error(getErrorMessage(err, "Failed to update account settings."));
     }
   };
 

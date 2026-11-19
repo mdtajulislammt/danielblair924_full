@@ -4,6 +4,7 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -11,6 +12,7 @@ import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcryptjs';
 import crypto from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 import { ResetPasswordDto } from './dto/reset-password.dto.js';
@@ -23,6 +25,7 @@ interface OtpEntry {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   private readonly jwtSecret: string;
   private readonly refreshSecret: string;
   private readonly resetSecret: string;
@@ -33,6 +36,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly notifications: NotificationsService,
   ) {
     const jwt = process.env.JWT_SECRET;
     if (!jwt) {
@@ -86,19 +90,35 @@ export class AuthService {
       },
     });
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role);
-
-    // Save session
-    await this.prisma.userSession.create({
+    // Create session record first to obtain sid
+    const session = await this.prisma.userSession.create({
       data: {
         userId: user.id,
         device: 'Web / Mobile Client',
         location: 'Initial Registration',
-        isCurrent: true,
-        refreshToken: tokens.refreshToken,
+        isCurrent: false,
+        refreshToken: '',
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
       },
     });
+
+    const tokens = await this.generateTokens(user.id, user.email, user.role, session.id);
+
+    // Save refreshToken on session
+    await this.prisma.userSession.update({
+      where: { id: session.id },
+      data: { refreshToken: tokens.refreshToken },
+    });
+
+    const fullName = `${user.fname || ''} ${user.lname || ''}`.trim() || user.username || user.email;
+    void this.notifications
+      .notifyAdmins('MEMBER_REGISTERED', 'New member joined', `${fullName} just signed up`, {
+        route: `/dashboard/members/${user.id}`,
+        memberId: user.id,
+      })
+      .catch((err) =>
+        this.logger.error(`Failed to notify admins for registration ${user.id}: ${err.message}`),
+      );
 
     return {
       status: 'success',
@@ -130,18 +150,23 @@ export class AuthService {
       throw new UnauthorizedException('Your account has been suspended. Please contact support.');
     }
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role);
-
-    // Record session
-    await this.prisma.userSession.create({
+    // Record session first to obtain sid
+    const session = await this.prisma.userSession.create({
       data: {
         userId: user.id,
         device: userAgent || 'Browser Device',
         location: ip || 'Remote Client',
-        isCurrent: true,
-        refreshToken: tokens.refreshToken,
+        isCurrent: false,
+        refreshToken: '',
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       },
+    });
+
+    const tokens = await this.generateTokens(user.id, user.email, user.role, session.id);
+
+    await this.prisma.userSession.update({
+      where: { id: session.id },
+      data: { refreshToken: tokens.refreshToken },
     });
 
     const safeUser = {
@@ -189,6 +214,7 @@ export class AuthService {
         session.user.id,
         session.user.email,
         session.user.role,
+        session.id,
       );
 
       // Rotate refresh token on the session
@@ -213,8 +239,12 @@ export class AuthService {
     }
   }
 
-  async logout(userId: string, refreshToken?: string) {
-    if (refreshToken) {
+  async logout(userId: string, refreshToken?: string, sid?: string) {
+    if (sid) {
+      await this.prisma.userSession.deleteMany({
+        where: { id: sid, userId },
+      });
+    } else if (refreshToken) {
       await this.prisma.userSession.deleteMany({
         where: { userId, refreshToken },
       });
@@ -385,15 +415,20 @@ export class AuthService {
     }
   }
 
-  private async generateTokens(userId: string, email: string, role: string) {
-    const payload = { sub: userId, email, role, type: 'access' };
+  private async generateTokens(
+    userId: string,
+    email: string,
+    role: string,
+    sid?: string,
+  ) {
+    const payload = { sub: userId, email, role, sid, type: 'access' };
     const accessToken = this.jwtService.sign(payload, {
       secret: this.jwtSecret,
       expiresIn: '1d',
     });
 
     const refreshToken = this.jwtService.sign(
-      { sub: userId, email, role, type: 'refresh' },
+      { sub: userId, email, role, sid, type: 'refresh' },
       {
         secret: this.refreshSecret,
         expiresIn: '7d',

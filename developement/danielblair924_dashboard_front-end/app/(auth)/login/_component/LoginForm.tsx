@@ -1,4 +1,6 @@
 "use client";
+
+import { getErrorMessage } from "@/lib/apiResponse";
 import { EmailIcon, PasswordIcon } from "@/public/demoData/Icons";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -94,9 +96,7 @@ function LoginForm() {
     } catch (err: any) {
       console.error("Login error:", err);
       const errMsg =
-        err?.response?.data?.message ||
-        err?.message ||
-        "Invalid email or password. Please try again.";
+        getErrorMessage(err, "Invalid email or password. Please try again.");
       toast.error(errMsg);
     } finally {
       setIsLoading(false);

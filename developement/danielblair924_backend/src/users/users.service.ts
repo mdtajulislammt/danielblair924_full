@@ -2,11 +2,13 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
 import { UpdateShippingDto } from './dto/update-shipping.dto.js';
 import { CreateUserDto } from './dto/create-user.dto.js';
@@ -15,7 +17,12 @@ import { Role, UserStatus } from '../generated/prisma/client.js';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(UsersService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   async getProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
@@ -511,6 +518,16 @@ export class UsersService {
         createdAt: true,
       },
     });
+
+    const fullName = `${user.fname || ''} ${user.lname || ''}`.trim() || user.username || user.email;
+    void this.notifications
+      .notifyAdmins('MEMBER_REGISTERED', 'New member joined', `${fullName} just signed up`, {
+        route: `/dashboard/members/${user.id}`,
+        memberId: user.id,
+      })
+      .catch((err) =>
+        this.logger.error(`Failed to notify admins for member create ${user.id}: ${err.message}`),
+      );
 
     return {
       status: 'success',

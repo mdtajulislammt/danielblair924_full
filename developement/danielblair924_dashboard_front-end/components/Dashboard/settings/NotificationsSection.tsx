@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { notificationSchema, NotificationFormData } from "./schemas";
 import { Toggle } from "@/components/reusable/Toggle";
 import { SettingsService } from "@/service/settings/settings.service";
+import { getErrorMessage } from "@/lib/apiResponse";
 import { toast } from "react-toastify";
 
 interface NotificationsSectionProps {
@@ -80,9 +81,7 @@ export const NotificationsSection: React.FC<NotificationsSectionProps> = ({
       toast.success("Notification preferences updated.");
     } catch (err: any) {
       console.error("Failed to update notifications:", err);
-      toast.error(
-        err?.response?.data?.message || err?.message || "Failed to update notification settings."
-      );
+      toast.error(getErrorMessage(err, "Failed to update notification settings."));
     }
   };
 

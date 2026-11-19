@@ -17,12 +17,14 @@ export class SettingsService {
    * Retrieve administrative settings including account details,
    * alert notification preferences, and active browser sessions.
    */
-  async getAdminSettings(userId: string) {
+  async getAdminSettings(userId: string, currentSid?: string) {
+    const now = new Date();
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
         notificationSettings: true,
         sessions: {
+          where: { expiresAt: { gt: now } },
           orderBy: { createdAt: 'desc' },
         },
       },
@@ -38,35 +40,39 @@ export class SettingsService {
       'Admin User';
 
     return {
-      account: {
-        id: user.id,
-        name: fullName,
-        email: user.email,
-        avatarUrl: user.avatarUrl,
-        role: user.role,
-      },
-      notifications: {
-        newSubmissionAlert:
-          user.notificationSettings?.newSubmissionAlert ?? true,
-        newRegistrationAlert:
-          user.notificationSettings?.newRegistrationAlert ?? true,
-        weeklySummaryEmail:
-          user.notificationSettings?.weeklySummaryEmail ?? false,
-        eventPublishedConfirmation:
-          user.notificationSettings?.eventPublishedConfirmation ?? true,
-        badgeEarnedNotifications:
-          user.notificationSettings?.badgeEarnedNotifications ?? false,
-      },
-      security: {
-        enable2FA: false,
-        sessions: (user.sessions || []).map((session) => ({
-          id: session.id,
-          device: session.device,
-          location: session.location || 'Unknown Location',
-          isCurrent: session.isCurrent,
-          createdAt: session.createdAt,
-          expiresAt: session.expiresAt,
-        })),
+      status: 'success',
+      data: {
+        account: {
+          id: user.id,
+          name: fullName,
+          email: user.email,
+          avatarUrl: user.avatarUrl,
+          role: user.role,
+        },
+        notifications: {
+          newSubmissionAlert:
+            user.notificationSettings?.newSubmissionAlert ?? true,
+          newRegistrationAlert:
+            user.notificationSettings?.newRegistrationAlert ?? true,
+          weeklySummaryEmail:
+            user.notificationSettings?.weeklySummaryEmail ?? false,
+          eventPublishedConfirmation:
+            user.notificationSettings?.eventPublishedConfirmation ?? true,
+          badgeEarnedNotifications:
+            user.notificationSettings?.badgeEarnedNotifications ?? false,
+        },
+        security: {
+          enable2FA: false,
+          twoFactorAvailable: false,
+          sessions: (user.sessions || []).map((session) => ({
+            id: session.id,
+            device: session.device,
+            location: session.location || 'Unknown Location',
+            isCurrent: currentSid ? session.id === currentSid : session.isCurrent,
+            createdAt: session.createdAt,
+            expiresAt: session.expiresAt,
+          })),
+        },
       },
     };
   }
@@ -75,7 +81,11 @@ export class SettingsService {
    * Update administrator account credentials (name, email, password)
    * with current password verification and email uniqueness checks.
    */
-  async updateAdminAccount(userId: string, dto: UpdateAdminAccountDto) {
+  async updateAdminAccount(
+    userId: string,
+    dto: UpdateAdminAccountDto,
+    currentSid?: string,
+  ) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -94,6 +104,10 @@ export class SettingsService {
         );
       }
 
+      if (dto.newPassword.length < 8) {
+        throw new BadRequestException('New password must be at least 8 characters.');
+      }
+
       if (
         dto.confirmNewPassword !== undefined &&
         dto.confirmNewPassword !== dto.newPassword
@@ -107,6 +121,10 @@ export class SettingsService {
       );
       if (!isCurrentValid) {
         throw new BadRequestException('Current password is incorrect.');
+      }
+
+      if (dto.newPassword === dto.currentPassword) {
+        throw new BadRequestException('New password must be different from current password.');
       }
 
       passwordHashUpdate = await bcrypt.hash(dto.newPassword, 10);
@@ -146,19 +164,32 @@ export class SettingsService {
       },
     });
 
+    // If password changed, revoke other sessions
+    if (passwordHashUpdate) {
+      await this.prisma.userSession.deleteMany({
+        where: {
+          userId,
+          ...(currentSid ? { id: { not: currentSid } } : {}),
+        },
+      });
+    }
+
     const updatedName =
       [updated.fname, updated.lname].filter(Boolean).join(' ') ||
       updated.username ||
       'Admin User';
 
     return {
+      status: 'success',
       message: 'Admin account updated successfully',
-      account: {
-        id: updated.id,
-        name: updatedName,
-        email: updated.email,
-        avatarUrl: updated.avatarUrl,
-        role: updated.role,
+      data: {
+        account: {
+          id: updated.id,
+          name: updatedName,
+          email: updated.email,
+          avatarUrl: updated.avatarUrl,
+          role: updated.role,
+        },
       },
     };
   }
@@ -172,13 +203,21 @@ export class SettingsService {
     });
 
     return {
-      newSubmissionAlert: settings?.newSubmissionAlert ?? true,
-      newRegistrationAlert: settings?.newRegistrationAlert ?? true,
-      weeklySummaryEmail: settings?.weeklySummaryEmail ?? false,
-      eventPublishedConfirmation:
-        settings?.eventPublishedConfirmation ?? true,
-      badgeEarnedNotifications:
-        settings?.badgeEarnedNotifications ?? false,
+      status: 'success',
+      data: {
+        newSubmissionAlert: settings?.newSubmissionAlert ?? true,
+        newRegistrationAlert: settings?.newRegistrationAlert ?? true,
+        weeklySummaryEmail: settings?.weeklySummaryEmail ?? false,
+        eventPublishedConfirmation:
+          settings?.eventPublishedConfirmation ?? true,
+        badgeEarnedNotifications:
+          settings?.badgeEarnedNotifications ?? false,
+        pushEnabled: settings?.pushEnabled ?? true,
+        submissionUpdates: settings?.submissionUpdates ?? true,
+        newEvents: settings?.newEvents ?? true,
+        newChallenges: settings?.newChallenges ?? true,
+        newsUpdates: settings?.newsUpdates ?? true,
+      },
     };
   }
 
@@ -200,6 +239,11 @@ export class SettingsService {
           dto.eventPublishedConfirmation ?? true,
         badgeEarnedNotifications:
           dto.badgeEarnedNotifications ?? false,
+        pushEnabled: dto.pushEnabled ?? true,
+        submissionUpdates: dto.submissionUpdates ?? true,
+        newEvents: dto.newEvents ?? true,
+        newChallenges: dto.newChallenges ?? true,
+        newsUpdates: dto.newsUpdates ?? true,
       },
       update: {
         ...(dto.newSubmissionAlert !== undefined && {
@@ -217,17 +261,40 @@ export class SettingsService {
         ...(dto.badgeEarnedNotifications !== undefined && {
           badgeEarnedNotifications: dto.badgeEarnedNotifications,
         }),
+        ...(dto.pushEnabled !== undefined && {
+          pushEnabled: dto.pushEnabled,
+        }),
+        ...(dto.submissionUpdates !== undefined && {
+          submissionUpdates: dto.submissionUpdates,
+        }),
+        ...(dto.newEvents !== undefined && {
+          newEvents: dto.newEvents,
+        }),
+        ...(dto.newChallenges !== undefined && {
+          newChallenges: dto.newChallenges,
+        }),
+        ...(dto.newsUpdates !== undefined && {
+          newsUpdates: dto.newsUpdates,
+        }),
       },
     });
 
     return {
+      status: 'success',
       message: 'Notification preferences updated successfully',
-      notifications: {
-        newSubmissionAlert: settings.newSubmissionAlert,
-        newRegistrationAlert: settings.newRegistrationAlert,
-        weeklySummaryEmail: settings.weeklySummaryEmail,
-        eventPublishedConfirmation: settings.eventPublishedConfirmation,
-        badgeEarnedNotifications: settings.badgeEarnedNotifications,
+      data: {
+        notifications: {
+          newSubmissionAlert: settings.newSubmissionAlert,
+          newRegistrationAlert: settings.newRegistrationAlert,
+          weeklySummaryEmail: settings.weeklySummaryEmail,
+          eventPublishedConfirmation: settings.eventPublishedConfirmation,
+          badgeEarnedNotifications: settings.badgeEarnedNotifications,
+          pushEnabled: settings.pushEnabled,
+          submissionUpdates: settings.submissionUpdates,
+          newEvents: settings.newEvents,
+          newChallenges: settings.newChallenges,
+          newsUpdates: settings.newsUpdates,
+        },
       },
     };
   }
@@ -235,26 +302,36 @@ export class SettingsService {
   /**
    * Get list of active logged-in browser/device sessions.
    */
-  async getActiveSessions(userId: string) {
+  async getActiveSessions(userId: string, currentSid?: string) {
     const sessions = await this.prisma.userSession.findMany({
-      where: { userId },
+      where: {
+        userId,
+        expiresAt: { gt: new Date() },
+      },
       orderBy: { createdAt: 'desc' },
     });
 
-    return sessions.map((session) => ({
-      id: session.id,
-      device: session.device,
-      location: session.location || 'Unknown Location',
-      isCurrent: session.isCurrent,
-      createdAt: session.createdAt,
-      expiresAt: session.expiresAt,
-    }));
+    return {
+      status: 'success',
+      data: sessions.map((session) => ({
+        id: session.id,
+        device: session.device,
+        location: session.location || 'Unknown Location',
+        isCurrent: currentSid ? session.id === currentSid : session.isCurrent,
+        createdAt: session.createdAt,
+        expiresAt: session.expiresAt,
+      })),
+    };
   }
 
   /**
    * Revoke an active security session by ID.
    */
-  async revokeSession(userId: string, sessionId: string) {
+  async revokeSession(userId: string, sessionId: string, currentSid?: string) {
+    if (currentSid && sessionId === currentSid) {
+      throw new BadRequestException('Use logout to end the current session');
+    }
+
     const session = await this.prisma.userSession.findUnique({
       where: { id: sessionId },
     });
@@ -270,8 +347,27 @@ export class SettingsService {
     });
 
     return {
-      success: true,
+      status: 'success',
       message: 'Session revoked successfully',
+      data: null,
+    };
+  }
+
+  /**
+   * Delete other active sessions for this user, keeping currentSid.
+   */
+  async deleteOtherSessions(userId: string, currentSid?: string) {
+    await this.prisma.userSession.deleteMany({
+      where: {
+        userId,
+        ...(currentSid ? { id: { not: currentSid } } : {}),
+      },
+    });
+
+    return {
+      status: 'success',
+      message: 'Other sessions logged out successfully',
+      data: null,
     };
   }
 }

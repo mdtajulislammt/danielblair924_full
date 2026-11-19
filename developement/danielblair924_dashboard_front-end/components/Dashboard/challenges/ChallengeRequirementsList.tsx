@@ -54,7 +54,7 @@ export default function ChallengeRequirementsList() {
     setIsLoading(true);
     ChallengeService.getChallengeById(challengeId)
       .then((res) => {
-        const challenge: ChallengeItem = res?.data || (res as any);
+        const challenge: ChallengeItem = (res as any)?.data || res;
         if (challenge?.requirements) {
           const req = challenge.requirements;
           const dynamicList: ChallengeRequirement[] = [

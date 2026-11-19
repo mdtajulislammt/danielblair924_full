@@ -50,9 +50,10 @@ export class AuthController {
   @Post('logout')
   async logout(
     @CurrentUser('id') userId: string,
+    @CurrentUser('sid') sid?: string,
     @Body() body?: { refreshToken?: string },
   ) {
-    return this.authService.logout(userId, body?.refreshToken);
+    return this.authService.logout(userId, body?.refreshToken, sid);
   }
 
   @UseGuards(JwtAuthGuard)

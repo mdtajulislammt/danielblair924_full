@@ -2,7 +2,12 @@
 
 import React from "react";
 import { usePathname, useRouter } from "next/navigation";
-import settingsData from "@/components/Dashboard/settings/settingsData.json";
+
+const SETTINGS_NAVIGATION = [
+  { id: "admin-account", label: "Admin Account" },
+  { id: "notifications", label: "Notification" },
+  { id: "security", label: "Security" },
+];
 
 const SettingsNav = () => {
   const router = useRouter();
@@ -18,7 +23,7 @@ const SettingsNav = () => {
 
   return (
     <>
-      {settingsData.navigation.map((nav) => {
+      {SETTINGS_NAVIGATION.map((nav) => {
         const targetPath =
           nav.id === "admin-account"
             ? "/dashboard/settings"

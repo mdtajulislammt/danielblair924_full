@@ -1,5 +1,6 @@
 import { Fetch } from "../../lib/Fetch";
 import { AppConfig } from "../../config/app.config";
+import { getBody, unwrap } from "../../lib/apiResponse";
 import type { StaticImageData } from "next/image";
 
 export interface BadgeTag {
@@ -56,37 +57,12 @@ export const BadgeService = {
 
     const queryString = params.toString() ? `?${params.toString()}` : "";
     const response = await Fetch.get(`/badges${queryString}`);
-    const resData = response?.data?.data ?? response?.data ?? response;
-
-    // Normalize response structure
-    if (Array.isArray(resData)) {
-      return {
-        data: resData,
-        pagination: {
-          page: query?.page || 1,
-          limit: query?.limit || resData.length,
-          totalItems: resData.length,
-          totalPages: 1,
-        },
-      };
-    }
-
-    if (resData?.data && Array.isArray(resData.data)) {
-      return {
-        status: resData.status,
-        data: resData.data,
-        pagination: resData.pagination,
-      };
-    }
+    const body = getBody(response);
 
     return {
-      data: [],
-      pagination: {
-        page: 1,
-        limit: 10,
-        totalItems: 0,
-        totalPages: 0,
-      },
+      status: body?.status,
+      data: Array.isArray(body?.data) ? body.data : Array.isArray(body) ? body : [],
+      pagination: body?.pagination,
     };
   },
 
@@ -95,8 +71,7 @@ export const BadgeService = {
    */
   getBadge: async (idOrSlug: string): Promise<BadgeItem | null> => {
     const response = await Fetch.get(`/badges/${idOrSlug}`);
-    const resData = response?.data?.data ?? response?.data ?? response;
-    return resData?.data || resData || null;
+    return unwrap(response);
   },
 
   /**
@@ -113,8 +88,7 @@ export const BadgeService = {
     slug?: string;
   }): Promise<BadgeItem> => {
     const response = await Fetch.post("/badges", payload);
-    const resData = response?.data?.data ?? response?.data ?? response;
-    return resData?.data || resData;
+    return unwrap(response);
   },
 
   /**
@@ -133,8 +107,7 @@ export const BadgeService = {
     }>
   ): Promise<BadgeItem> => {
     const response = await Fetch.patch(`/badges/${id}`, payload);
-    const resData = response?.data?.data ?? response?.data ?? response;
-    return resData?.data || resData;
+    return unwrap(response);
   },
 
   /**
@@ -142,7 +115,7 @@ export const BadgeService = {
    */
   deleteBadge: async (id: string): Promise<any> => {
     const response = await Fetch.delete(`/badges/${id}`);
-    return response?.data?.data ?? response?.data ?? response;
+    return unwrap(response);
   },
 
   /**

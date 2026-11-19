@@ -1,5 +1,6 @@
 import { Fetch } from "../../lib/Fetch";
 import { AppConfig } from "../../config/app.config";
+import { getBody, unwrap } from "../../lib/apiResponse";
 
 export interface NewsAuthor {
   id: string;
@@ -63,7 +64,7 @@ export interface UpdateNewsPayload {
 export const NewsService = {
   /**
    * Retrieve list of news articles with search, status filtering, and pagination.
-   * Tries /admin/news first to include drafts, falls back to /news if needed.
+   * Uses /admin/news so drafts are included.
    */
   getNews: async (query?: NewsQueryParams): Promise<NewsListResponse> => {
     const params = new URLSearchParams();
@@ -74,49 +75,15 @@ export const NewsService = {
     if (query?.sort) params.set("sort", query.sort);
 
     const queryString = params.toString() ? `?${params.toString()}` : "";
-    try {
-      const response = await Fetch.get(`/admin/news${queryString}`);
-      const resData = response?.data?.data ?? response?.data ?? response;
-
-      if (resData && Array.isArray(resData.data)) {
-        return {
-          data: resData.data,
-          total: resData.total ?? resData.data.length,
-          page: resData.page ?? 1,
-          limit: resData.limit ?? 10,
-          totalPages: resData.totalPages ?? 1,
-        };
-      }
-      if (Array.isArray(resData)) {
-        return {
-          data: resData,
-          total: resData.length,
-          page: 1,
-          limit: resData.length,
-          totalPages: 1,
-        };
-      }
-    } catch {
-      // Fall back to public /news endpoint
-      const response = await Fetch.get(`/news${queryString}`);
-      const resData = response?.data?.data ?? response?.data ?? response;
-      if (resData && Array.isArray(resData.data)) {
-        return {
-          data: resData.data,
-          total: resData.total ?? resData.data.length,
-          page: resData.page ?? 1,
-          limit: resData.limit ?? 10,
-          totalPages: resData.totalPages ?? 1,
-        };
-      }
-    }
+    const response = await Fetch.get(`/admin/news${queryString}`);
+    const body = getBody(response);
 
     return {
-      data: [],
-      total: 0,
-      page: 1,
-      limit: 10,
-      totalPages: 0,
+      data: Array.isArray(body?.data) ? body.data : Array.isArray(body) ? body : [],
+      total: body?.total ?? (Array.isArray(body?.data) ? body.data.length : Array.isArray(body) ? body.length : 0),
+      page: body?.page ?? 1,
+      limit: body?.limit ?? 10,
+      totalPages: body?.totalPages ?? 1,
     };
   },
 
@@ -126,12 +93,13 @@ export const NewsService = {
   getNewsById: async (id: string): Promise<NewsArticle | null> => {
     try {
       const response = await Fetch.get(`/admin/news/${id}`);
-      const resData = response?.data?.data ?? response?.data ?? response;
-      return resData?.data || resData || null;
-    } catch {
-      const response = await Fetch.get(`/news/${id}`);
-      const resData = response?.data?.data ?? response?.data ?? response;
-      return resData?.data || resData || null;
+      return unwrap(response);
+    } catch (err: any) {
+      if (err?.response?.status === 404) {
+        const response = await Fetch.get(`/news/${id}`);
+        return unwrap(response);
+      }
+      throw err;
     }
   },
 
@@ -141,12 +109,13 @@ export const NewsService = {
   createNews: async (payload: CreateNewsPayload): Promise<NewsArticle> => {
     try {
       const response = await Fetch.post("/admin/news", payload);
-      const resData = response?.data?.data ?? response?.data ?? response;
-      return resData?.data || resData;
-    } catch {
-      const response = await Fetch.post("/news", payload);
-      const resData = response?.data?.data ?? response?.data ?? response;
-      return resData?.data || resData;
+      return unwrap(response);
+    } catch (err: any) {
+      if (err?.response?.status === 404) {
+        const response = await Fetch.post("/news", payload);
+        return unwrap(response);
+      }
+      throw err;
     }
   },
 
@@ -159,12 +128,13 @@ export const NewsService = {
   ): Promise<NewsArticle> => {
     try {
       const response = await Fetch.patch(`/admin/news/${id}`, payload);
-      const resData = response?.data?.data ?? response?.data ?? response;
-      return resData?.data || resData;
-    } catch {
-      const response = await Fetch.patch(`/news/${id}`, payload);
-      const resData = response?.data?.data ?? response?.data ?? response;
-      return resData?.data || resData;
+      return unwrap(response);
+    } catch (err: any) {
+      if (err?.response?.status === 404) {
+        const response = await Fetch.patch(`/news/${id}`, payload);
+        return unwrap(response);
+      }
+      throw err;
     }
   },
 
@@ -174,10 +144,13 @@ export const NewsService = {
   deleteNews: async (id: string): Promise<any> => {
     try {
       const response = await Fetch.delete(`/admin/news/${id}`);
-      return response?.data?.data ?? response?.data ?? response;
-    } catch {
-      const response = await Fetch.delete(`/news/${id}`);
-      return response?.data?.data ?? response?.data ?? response;
+      return unwrap(response);
+    } catch (err: any) {
+      if (err?.response?.status === 404) {
+        const response = await Fetch.delete(`/news/${id}`);
+        return unwrap(response);
+      }
+      throw err;
     }
   },
 
@@ -202,4 +175,3 @@ export const NewsService = {
     }
   },
 };
-

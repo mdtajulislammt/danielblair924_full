@@ -1,5 +1,7 @@
 "use client";
 
+import { getErrorMessage } from "@/lib/apiResponse";
+
 import BackButton from "@/components/reusable/BackButton";
 import Loader from "@/components/reusable/Loader";
 import Image from "next/image";
@@ -35,9 +37,7 @@ export default function SubmissionDetailPage({
     } catch (err: any) {
       console.error("Failed to load submission details:", err);
       setError(
-        err?.response?.data?.message ||
-          err?.message ||
-          "Failed to load submission details"
+        getErrorMessage(err, "Failed to load submission details")
       );
     } finally {
       setLoading(false);
@@ -59,9 +59,7 @@ export default function SubmissionDetailPage({
       fetchDetail();
     } catch (err: any) {
       const msg =
-        err?.response?.data?.message ||
-        err?.message ||
-        "Failed to approve submission";
+        getErrorMessage(err, "Failed to approve submission");
       toast.error(msg);
     } finally {
       setActionLoading(false);

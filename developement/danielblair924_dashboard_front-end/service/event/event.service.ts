@@ -1,5 +1,6 @@
 import { Fetch } from "../../lib/Fetch";
 import { AppConfig } from "../../config/app.config";
+import { unwrap } from "../../lib/apiResponse";
 
 export interface EventRequirements {
   completeDistance?: boolean;
@@ -78,15 +79,15 @@ export const EventService = {
 
     const qs = query.toString() ? `?${query.toString()}` : "";
     const response = await Fetch.get(`/admin/events${qs}`);
-    return response?.data?.data ?? response?.data ?? response;
+    return unwrap(response);
   },
 
   /**
    * Get single event detail by ID
    */
-  getEventById: async (id: string): Promise<{ status: string; data: EventItem }> => {
+  getEventById: async (id: string): Promise<EventItem> => {
     const response = await Fetch.get(`/admin/events/${id}`);
-    return response?.data?.data ?? response?.data ?? response;
+    return unwrap(response);
   },
 
   /**
@@ -96,12 +97,9 @@ export const EventService = {
     id: string,
     params?: { page?: number; limit?: number }
   ): Promise<{
-    status: string;
-    data: {
-      event: { id: string; title: string; registeredCount: number };
-      participants: EventParticipant[];
-      pagination: { total: number; page: number; limit: number; totalPages: number };
-    };
+    event: { id: string; title: string; registeredCount: number };
+    participants: EventParticipant[];
+    pagination: { total: number; page: number; limit: number; totalPages: number };
   }> => {
     const query = new URLSearchParams();
     if (params?.page) query.append("page", String(params.page));
@@ -109,7 +107,7 @@ export const EventService = {
 
     const qs = query.toString() ? `?${query.toString()}` : "";
     const response = await Fetch.get(`/admin/events/${id}/participants${qs}`);
-    return response?.data?.data ?? response?.data ?? response;
+    return unwrap(response);
   },
 
   /**
@@ -117,7 +115,7 @@ export const EventService = {
    */
   createEvent: async (payload: CreateEventPayload) => {
     const response = await Fetch.post("/admin/events", payload);
-    return response?.data?.data ?? response?.data ?? response;
+    return unwrap(response);
   },
 
   /**
@@ -125,7 +123,7 @@ export const EventService = {
    */
   updateEvent: async (id: string, payload: Partial<CreateEventPayload>) => {
     const response = await Fetch.patch(`/admin/events/${id}`, payload);
-    return response?.data?.data ?? response?.data ?? response;
+    return unwrap(response);
   },
 
   /**
@@ -133,7 +131,7 @@ export const EventService = {
    */
   deleteEvent: async (id: string) => {
     const response = await Fetch.delete(`/admin/events/${id}`);
-    return response?.data?.data ?? response?.data ?? response;
+    return unwrap(response);
   },
 
   /**

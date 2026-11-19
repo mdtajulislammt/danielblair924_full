@@ -7,6 +7,7 @@ export interface JwtPayload {
   sub: string;
   email: string;
   role: string;
+  sid?: string;
   type?: string;
 }
 
@@ -28,6 +29,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (payload.type && payload.type !== 'access') {
       throw new UnauthorizedException('Invalid token type');
     }
+    if (payload.sid) {
+      const session = await this.prisma.userSession.findUnique({
+        where: { id: payload.sid },
+      });
+      if (!session || session.expiresAt <= new Date()) {
+        throw new UnauthorizedException('Session revoked or expired');
+      }
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
       select: {
@@ -50,7 +60,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('Account has been suspended');
     }
 
-    return user;
+    return {
+      ...user,
+      sid: payload.sid,
+    };
   }
 }
 

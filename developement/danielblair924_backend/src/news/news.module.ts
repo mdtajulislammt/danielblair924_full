@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module.js';
+import { NotificationsModule } from '../notifications/notifications.module.js';
 import { NewsService } from './news.service.js';
 import { MediaService } from './media.service.js';
 import { NewsController } from './news.controller.js';
@@ -8,7 +9,7 @@ import { AppNewsController } from './app-news.controller.js';
 import { MediaController } from './media.controller.js';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, NotificationsModule],
   controllers: [
     NewsController,
     AdminNewsController,

@@ -6,6 +6,7 @@ import { AuthController } from './auth.controller.js';
 import { JwtStrategy } from './strategies/jwt.strategy.js';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 import { RolesGuard } from './guards/roles.guard.js';
+import { NotificationsModule } from '../notifications/notifications.module.js';
 
 const jwtSecret = process.env.JWT_SECRET;
 if (!jwtSecret) {
@@ -19,6 +20,7 @@ if (!jwtSecret) {
       secret: jwtSecret,
       signOptions: { expiresIn: '1d' },
     }),
+    NotificationsModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, JwtAuthGuard, RolesGuard],

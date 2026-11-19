@@ -4,9 +4,10 @@ import { EventsController } from './events.controller.js';
 import { AdminEventsController } from './admin-events.controller.js';
 import { AppEventsController } from './app-events.controller.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
+import { NotificationsModule } from '../notifications/notifications.module.js';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, NotificationsModule],
   controllers: [EventsController, AdminEventsController, AppEventsController],
   providers: [EventsService],
   exports: [EventsService],

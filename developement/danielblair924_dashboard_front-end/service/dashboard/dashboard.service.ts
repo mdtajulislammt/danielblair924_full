@@ -1,4 +1,5 @@
 import { Fetch } from "../../lib/Fetch";
+import { unwrap } from "../../lib/apiResponse";
 
 export interface DashboardStats {
   activeMembers: number;
@@ -23,26 +24,12 @@ export const DashboardService = {
    */
   getStats: async (): Promise<DashboardStats> => {
     try {
-      const response = await Fetch.get("/admin/dashboard/stats");
-      if (response && response.data) {
-        return {
-          activeMembers: response.data.activeMembers ?? 0,
-          pendingSubmissions: response.data.pendingSubmissions ?? 0,
-          upcomingEvents: response.data.upcomingEvents ?? 0,
-          activeChallenges:
-            response.data.activeChallenges ??
-            response.data.upcomingChallenges ??
-            0,
-        };
-      }
+      const s = unwrap<any>(await Fetch.get("/admin/dashboard/stats"));
       return {
-        activeMembers: response?.activeMembers ?? 0,
-        pendingSubmissions: response?.pendingSubmissions ?? 0,
-        upcomingEvents: response?.upcomingEvents ?? 0,
-        activeChallenges:
-          response?.activeChallenges ??
-          response?.upcomingChallenges ??
-          0,
+        activeMembers: s?.activeMembers ?? 0,
+        pendingSubmissions: s?.pendingSubmissions ?? 0,
+        upcomingEvents: s?.upcomingEvents ?? 0,
+        activeChallenges: s?.activeChallenges ?? s?.upcomingChallenges ?? 0,
       };
     } catch (error) {
       console.error("Failed to load dashboard stats:", error);
@@ -60,15 +47,12 @@ export const DashboardService = {
    */
   getRecentActivity: async (limit: number = 5): Promise<RecentActivityItem[]> => {
     try {
-      const response = await Fetch.get(`/admin/dashboard/recent-activity?limit=${limit}`);
-      if (response && response.data) {
-        return response.data;
-      }
-      return response || [];
+      const res = await Fetch.get(`/admin/dashboard/recent-activity?limit=${limit}`);
+      const d = unwrap<any>(res);
+      return Array.isArray(d) ? d.slice(0, limit) : [];
     } catch (error) {
       console.error("Failed to load recent activity:", error);
       return [];
     }
   },
 };
-

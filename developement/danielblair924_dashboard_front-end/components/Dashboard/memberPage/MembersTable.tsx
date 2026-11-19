@@ -1,5 +1,7 @@
 "use client";
 
+import { getErrorMessage } from "@/lib/apiResponse";
+
 import DynamicTable from "@/components/reusable/DynamicTable";
 import PaginationPage from "@/components/reusable/PaginationPage";
 import { MemberService } from "@/service/member/member.service";
@@ -91,7 +93,7 @@ export default function MembersTable() {
     } catch (err: any) {
       console.error("Failed to fetch members:", err);
       setError(
-        err?.response?.data?.message || err?.message || "Failed to load members"
+        getErrorMessage(err, "Failed to load members")
       );
     } finally {
       setLoading(false);

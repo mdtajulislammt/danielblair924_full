@@ -31,7 +31,7 @@ export default function ChallengeParticipantsTable() {
       limit: itemsPerPage,
     })
       .then((res) => {
-        const data = res?.data;
+        const data: any = (res as any)?.participants ? res : (res as any)?.data;
         if (Array.isArray(data?.participants)) {
           setParticipants(data.participants);
           setTotalItems(data.pagination?.total || data.participants.length);
