@@ -76,7 +76,7 @@ export const NewsService = {
     const queryString = params.toString() ? `?${params.toString()}` : "";
     try {
       const response = await Fetch.get(`/admin/news${queryString}`);
-      const resData = response?.data || response;
+      const resData = response?.data?.data ?? response?.data ?? response;
 
       if (resData && Array.isArray(resData.data)) {
         return {
@@ -99,7 +99,7 @@ export const NewsService = {
     } catch {
       // Fall back to public /news endpoint
       const response = await Fetch.get(`/news${queryString}`);
-      const resData = response?.data || response;
+      const resData = response?.data?.data ?? response?.data ?? response;
       if (resData && Array.isArray(resData.data)) {
         return {
           data: resData.data,
@@ -126,11 +126,11 @@ export const NewsService = {
   getNewsById: async (id: string): Promise<NewsArticle | null> => {
     try {
       const response = await Fetch.get(`/admin/news/${id}`);
-      const resData = response?.data || response;
+      const resData = response?.data?.data ?? response?.data ?? response;
       return resData?.data || resData || null;
     } catch {
       const response = await Fetch.get(`/news/${id}`);
-      const resData = response?.data || response;
+      const resData = response?.data?.data ?? response?.data ?? response;
       return resData?.data || resData || null;
     }
   },
@@ -141,11 +141,11 @@ export const NewsService = {
   createNews: async (payload: CreateNewsPayload): Promise<NewsArticle> => {
     try {
       const response = await Fetch.post("/admin/news", payload);
-      const resData = response?.data || response;
+      const resData = response?.data?.data ?? response?.data ?? response;
       return resData?.data || resData;
     } catch {
       const response = await Fetch.post("/news", payload);
-      const resData = response?.data || response;
+      const resData = response?.data?.data ?? response?.data ?? response;
       return resData?.data || resData;
     }
   },
@@ -159,11 +159,11 @@ export const NewsService = {
   ): Promise<NewsArticle> => {
     try {
       const response = await Fetch.patch(`/admin/news/${id}`, payload);
-      const resData = response?.data || response;
+      const resData = response?.data?.data ?? response?.data ?? response;
       return resData?.data || resData;
     } catch {
       const response = await Fetch.patch(`/news/${id}`, payload);
-      const resData = response?.data || response;
+      const resData = response?.data?.data ?? response?.data ?? response;
       return resData?.data || resData;
     }
   },
@@ -174,10 +174,10 @@ export const NewsService = {
   deleteNews: async (id: string): Promise<any> => {
     try {
       const response = await Fetch.delete(`/admin/news/${id}`);
-      return response?.data || response;
+      return response?.data?.data ?? response?.data ?? response;
     } catch {
       const response = await Fetch.delete(`/news/${id}`);
-      return response?.data || response;
+      return response?.data?.data ?? response?.data ?? response;
     }
   },
 

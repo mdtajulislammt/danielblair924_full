@@ -56,7 +56,7 @@ export const BadgeService = {
 
     const queryString = params.toString() ? `?${params.toString()}` : "";
     const response = await Fetch.get(`/badges${queryString}`);
-    const resData = response?.data || response;
+    const resData = response?.data?.data ?? response?.data ?? response;
 
     // Normalize response structure
     if (Array.isArray(resData)) {
@@ -95,7 +95,7 @@ export const BadgeService = {
    */
   getBadge: async (idOrSlug: string): Promise<BadgeItem | null> => {
     const response = await Fetch.get(`/badges/${idOrSlug}`);
-    const resData = response?.data || response;
+    const resData = response?.data?.data ?? response?.data ?? response;
     return resData?.data || resData || null;
   },
 
@@ -113,7 +113,7 @@ export const BadgeService = {
     slug?: string;
   }): Promise<BadgeItem> => {
     const response = await Fetch.post("/badges", payload);
-    const resData = response?.data || response;
+    const resData = response?.data?.data ?? response?.data ?? response;
     return resData?.data || resData;
   },
 
@@ -133,7 +133,7 @@ export const BadgeService = {
     }>
   ): Promise<BadgeItem> => {
     const response = await Fetch.patch(`/badges/${id}`, payload);
-    const resData = response?.data || response;
+    const resData = response?.data?.data ?? response?.data ?? response;
     return resData?.data || resData;
   },
 
@@ -142,7 +142,7 @@ export const BadgeService = {
    */
   deleteBadge: async (id: string): Promise<any> => {
     const response = await Fetch.delete(`/badges/${id}`);
-    return response?.data || response;
+    return response?.data?.data ?? response?.data ?? response;
   },
 
   /**

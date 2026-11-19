@@ -52,7 +52,7 @@ export const SettingsService = {
   getAdminSettings: async (): Promise<AdminSettingsResponse> => {
     try {
       const response = await Fetch.get("/admin/settings");
-      const resData = response?.data || response;
+      const resData = response?.data?.data ?? response?.data ?? response;
       if (resData?.account) return resData;
     } catch {
       // Fallback
@@ -61,7 +61,7 @@ export const SettingsService = {
     try {
       // Try /user/me
       const meRes = await Fetch.get("/user/me");
-      const user = meRes?.data || meRes;
+      const user = meRes?.data?.data ?? meRes?.data ?? meRes;
       const notifRes = await Fetch.get("/settings/notifications").catch(() => null);
       const sessRes = await Fetch.get("/settings/sessions").catch(() => null);
 
@@ -75,7 +75,7 @@ export const SettingsService = {
           avatarUrl: user?.avatarUrl,
           role: user?.role || "ADMIN",
         },
-        notifications: notifRes?.data || {
+        notifications: notifRes?.data?.data ?? notifRes?.data ?? {
           newSubmissionAlert: true,
           newRegistrationAlert: true,
           weeklySummaryEmail: false,
@@ -84,7 +84,7 @@ export const SettingsService = {
         },
         security: {
           enable2FA: false,
-          sessions: sessRes?.data || [
+          sessions: sessRes?.data?.data ?? sessRes?.data ?? [
             {
               id: "session-current",
               device: "Chrome / macOS (Active)",
@@ -128,10 +128,10 @@ export const SettingsService = {
   updateAdminAccount: async (payload: UpdateAdminAccountPayload): Promise<any> => {
     try {
       const response = await Fetch.patch("/admin/settings/account", payload);
-      return response?.data || response;
+      return response?.data?.data ?? response?.data ?? response;
     } catch {
       const response = await Fetch.patch("/user/profile", payload);
-      return response?.data || response;
+      return response?.data?.data ?? response?.data ?? response;
     }
   },
 
@@ -143,10 +143,10 @@ export const SettingsService = {
   ): Promise<any> => {
     try {
       const response = await Fetch.patch("/admin/settings/notifications", payload);
-      return response?.data || response;
+      return response?.data?.data ?? response?.data ?? response;
     } catch {
       const response = await Fetch.patch("/settings/notifications", payload);
-      return response?.data || response;
+      return response?.data?.data ?? response?.data ?? response;
     }
   },
 
@@ -156,12 +156,12 @@ export const SettingsService = {
   getActiveSessions: async (): Promise<AdminSession[]> => {
     try {
       const response = await Fetch.get("/admin/settings/sessions");
-      const resData = response?.data || response;
+      const resData = response?.data?.data ?? response?.data ?? response;
       if (Array.isArray(resData?.data)) return resData.data;
       if (Array.isArray(resData)) return resData;
     } catch {
       const response = await Fetch.get("/settings/sessions").catch(() => null);
-      const resData = response?.data || response;
+      const resData = response?.data?.data ?? response?.data ?? response;
       if (Array.isArray(resData?.data)) return resData.data;
       if (Array.isArray(resData)) return resData;
     }
@@ -182,10 +182,10 @@ export const SettingsService = {
   revokeSession: async (sessionId: string): Promise<any> => {
     try {
       const response = await Fetch.delete(`/admin/settings/sessions/${sessionId}`);
-      return response?.data || response;
+      return response?.data?.data ?? response?.data ?? response;
     } catch {
       const response = await Fetch.delete(`/settings/sessions/${sessionId}`);
-      return response?.data || response;
+      return response?.data?.data ?? response?.data ?? response;
     }
   },
 };

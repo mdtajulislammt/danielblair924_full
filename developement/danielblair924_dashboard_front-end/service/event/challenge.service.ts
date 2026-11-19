@@ -85,7 +85,7 @@ export const ChallengeService = {
 
     const qs = query.toString() ? `?${query.toString()}` : "";
     const response = await Fetch.get(`/admin/challenges${qs}`);
-    return response?.data || response;
+    return response?.data?.data ?? response?.data ?? response;
   },
 
   /**
@@ -93,7 +93,7 @@ export const ChallengeService = {
    */
   getChallengeById: async (id: string): Promise<{ status: string; data: ChallengeItem }> => {
     const response = await Fetch.get(`/admin/challenges/${id}`);
-    return response?.data || response;
+    return response?.data?.data ?? response?.data ?? response;
   },
 
   /**
@@ -104,7 +104,7 @@ export const ChallengeService = {
       ? `/admin/challenges/${challengeId}/destinations`
       : `/challenges/ratw/destinations`;
     const response = await Fetch.get(url);
-    return response?.data || response;
+    return response?.data?.data ?? response?.data ?? response;
   },
 
   /**
@@ -133,7 +133,7 @@ export const ChallengeService = {
 
     const qs = query.toString() ? `?${query.toString()}` : "";
     const response = await Fetch.get(`/admin/challenges/${challengeId}/participants${qs}`);
-    return response?.data || response;
+    return response?.data?.data ?? response?.data ?? response;
   },
 
   /**
@@ -141,7 +141,7 @@ export const ChallengeService = {
    */
   createChallenge: async (payload: CreateChallengePayload) => {
     const response = await Fetch.post("/admin/challenges", payload);
-    return response?.data || response;
+    return response?.data?.data ?? response?.data ?? response;
   },
 
   /**
@@ -149,7 +149,7 @@ export const ChallengeService = {
    */
   updateChallenge: async (id: string, payload: Partial<CreateChallengePayload>) => {
     const response = await Fetch.patch(`/admin/challenges/${id}`, payload);
-    return response?.data || response;
+    return response?.data?.data ?? response?.data ?? response;
   },
 
   /**
@@ -157,7 +157,7 @@ export const ChallengeService = {
    */
   deleteChallenge: async (id: string) => {
     const response = await Fetch.delete(`/admin/challenges/${id}`);
-    return response?.data || response;
+    return response?.data?.data ?? response?.data ?? response;
   },
 
   /**

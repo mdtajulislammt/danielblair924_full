@@ -78,7 +78,7 @@ export const EventService = {
 
     const qs = query.toString() ? `?${query.toString()}` : "";
     const response = await Fetch.get(`/admin/events${qs}`);
-    return response?.data || response;
+    return response?.data?.data ?? response?.data ?? response;
   },
 
   /**
@@ -86,7 +86,7 @@ export const EventService = {
    */
   getEventById: async (id: string): Promise<{ status: string; data: EventItem }> => {
     const response = await Fetch.get(`/admin/events/${id}`);
-    return response?.data || response;
+    return response?.data?.data ?? response?.data ?? response;
   },
 
   /**
@@ -109,7 +109,7 @@ export const EventService = {
 
     const qs = query.toString() ? `?${query.toString()}` : "";
     const response = await Fetch.get(`/admin/events/${id}/participants${qs}`);
-    return response?.data || response;
+    return response?.data?.data ?? response?.data ?? response;
   },
 
   /**
@@ -117,7 +117,7 @@ export const EventService = {
    */
   createEvent: async (payload: CreateEventPayload) => {
     const response = await Fetch.post("/admin/events", payload);
-    return response?.data || response;
+    return response?.data?.data ?? response?.data ?? response;
   },
 
   /**
@@ -125,7 +125,7 @@ export const EventService = {
    */
   updateEvent: async (id: string, payload: Partial<CreateEventPayload>) => {
     const response = await Fetch.patch(`/admin/events/${id}`, payload);
-    return response?.data || response;
+    return response?.data?.data ?? response?.data ?? response;
   },
 
   /**
@@ -133,7 +133,7 @@ export const EventService = {
    */
   deleteEvent: async (id: string) => {
     const response = await Fetch.delete(`/admin/events/${id}`);
-    return response?.data || response;
+    return response?.data?.data ?? response?.data ?? response;
   },
 
   /**
